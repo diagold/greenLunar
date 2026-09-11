@@ -5,20 +5,20 @@ import Link from "next/link";
 import { routes } from "@/config/routes";
 
 const memberCompanies = [
-  {
-    image: "/images/services/construction.jpg",
-    path: routes.services.construction,
-  },
+  // {
+  //   image: "/images/services/construction.jpg",
+  //   path: routes.services.construction,
+  // },
   {
     image: "https://res.cloudinary.com/diobpauw/image/upload/v1789031988/HVL_LOGO.png",
     path: routes.services.realEstate,
   },
   {
-    image: "/images/logo/GrrenCardio.jpeg",
+    image: "https://res.cloudinary.com/diobpauw/image/upload/v1789121164/WhatsApp_Image_2026-09-07_at_12.22.59_PM.jpg",
     path: routes.services.fitnessWellness,
   },
   {
-    image: "/images/services/media.jpg",
+    image: "https://res.cloudinary.com/diobpauw/image/upload/v1789121618/WhatsApp_Image_2026-09-08_at_4.02.35_PM.jpg",
     path: routes.services.mediaEntertainment,
   },
 ];

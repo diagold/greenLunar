@@ -2,25 +2,40 @@
 "use client";
 
 import { ArrowUpRight, MapPin, Phone, Mail } from "lucide-react";
+import { routes } from "@/config/routes";
 
 const companyLinks = [
-  { name: "About Us", href: "#" },
-  { name: "Our Story", href: "#" },
-  { name: "Contact Us", href: "#contact" },
+    { name: "Home",href:routes.home},
+    { name: "About Us", href: routes.about },
+    { name: "Contact Us", href: routes.contact },
 ];
 
 const serviceLinks = [
-  { name: "Technology", href: "#" },
-  { name: "Construction", href: "#" },
-  { name: "Fitness & Wellness", href: "#" },
-  { name: "Media & Entertainment", href: "#" },
-  { name: "Real Estate", href: "#" },
+  { name: "Technology", href: routes.services.technology },
+  { name: "Construction", href: routes.services.construction },
+  { name: "Fitness & Wellness", href: routes.services.fitnessWellness },
+  { name: "Media & Entertainment", href: routes.services.mediaEntertainment },
+  { name: "Real Estate", href: routes.services.realEstate },
 ];
 
 const socialLinks = [
   {
-    name: "LinkedIn",
-    href: "#",
+    name: "X",
+    href: "https://x.com/Greenlunarng",
+    icon: (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className="h-[18px] w-[18px]"
+      >
+        <path d="M6.94 8.5H3.56V20h3.38V8.5ZM5.25 3A2.02 2.02 0 1 0 5.25 7.04 2.02 2.02 0 0 0 5.25 3ZM20.44 13.2c0-3.46-1.85-5.07-4.32-5.07-1.99 0-2.88 1.09-3.38 1.86V8.5H9.36V20h3.38v-5.7c0-1.5.28-2.95 2.14-2.95 1.83 0 1.85 1.72 1.85 3.05V20h3.38l.33-6.8Z" />
+      </svg>
+    ),
+  },
+   {
+    name: "Linkdln",
+    href: "https://x.com/Greenlunarng",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -34,7 +49,7 @@ const socialLinks = [
   },
   {
     name: "Instagram",
-    href: "#",
+    href: "https://www.instagram.com/greenlunarng?igsi=Y2tleHV6MDNmbTRi",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -58,7 +73,7 @@ const socialLinks = [
   },
   {
     name: "Facebook",
-    href: "#",
+    href: "https://www.facebook.com/share/1ByRdVHkL2/",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -208,8 +223,8 @@ export default function Footer() {
             <div className="mt-6 space-y-6">
 
               {/* Phone */}
-              <a
-                href="tel:+2340000000000"
+              <div
+               
                 className="group flex items-start gap-4"
               >
                 <div
@@ -237,14 +252,13 @@ export default function Footer() {
                     Phone
                   </p>
                   <p className="mt-1 text-sm text-white/75 transition-colors group-hover:text-green-400">
-                    +234 000 000 0000
+                    +234 70 7489 4559
                   </p>
                 </div>
-              </a>
+              </div>
 
               {/* Email */}
-              <a
-                href="mailto:info@greenlunar.com"
+              <div
                 className="group flex items-start gap-4"
               >
                 <div
@@ -275,7 +289,7 @@ export default function Footer() {
                     info@greenlunar.com
                   </p>
                 </div>
-              </a>
+              </div>
 
               {/* Address */}
               <div className="group flex items-start gap-4">
@@ -301,10 +315,10 @@ export default function Footer() {
 
                 <div>
                   <p className="text-xs text-white/40">
-                    Office
+                    HQ
                   </p>
                   <p className="mt-1 max-w-xs text-sm leading-6 text-white/75">
-                    Lagos, Nigeria
+                    11 Tairu Olugbani Street Oregun Ikeja, Lagos Nigeria.
                   </p>
                 </div>
               </div>

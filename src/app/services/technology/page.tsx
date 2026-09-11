@@ -215,27 +215,7 @@ export default function TechnologyPage() {
       />
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-
-      <span
-        className="
-          absolute
-          left-5
-          top-5
-          flex
-          h-10
-          w-10
-          items-center
-          justify-center
-          rounded-md
-          bg-white
-          text-sm
-          font-semibold
-          text-green-600
-          shadow-md
-        "
-      >
-        01
-      </span>
+     
     </div>
 
     {/* CONTENT */}
@@ -302,10 +282,7 @@ export default function TechnologyPage() {
       />
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-
-      <span className="absolute left-5 top-5 flex h-10 w-10 items-center justify-center rounded-md bg-white text-sm font-semibold text-green-600 shadow-md">
-        02
-      </span>
+   
     </div>
 
     <div className="p-8">
@@ -371,10 +348,7 @@ export default function TechnologyPage() {
       />
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-
-      <span className="absolute left-5 top-5 flex h-10 w-10 items-center justify-center rounded-md bg-white text-sm font-semibold text-green-600 shadow-md">
-        03
-      </span>
+    
     </div>
 
     <div className="p-8">
@@ -440,9 +414,6 @@ export default function TechnologyPage() {
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
 
-      <span className="absolute left-5 top-5 flex h-10 w-10 items-center justify-center rounded-md bg-white text-sm font-semibold text-green-600 shadow-md">
-        04
-      </span>
     </div>
 
     <div className="p-8">
@@ -507,10 +478,7 @@ export default function TechnologyPage() {
       />
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-
-      <span className="absolute left-5 top-5 flex h-10 w-10 items-center justify-center rounded-md bg-white text-sm font-semibold text-green-600 shadow-md">
-        05
-      </span>
+     
     </div>
 
     <div className="p-8">
@@ -605,11 +573,7 @@ export default function TechnologyPage() {
 
               {/* Smart Boards */}
               <div className="rounded-xl bg-white p-8 shadow-[0_12px_35px_rgba(0,0,0,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(0,0,0,0.10)]">
-
-                    <span className="text-sm font-medium text-green-600">
-                    01
-                    </span>
-
+                 
                     <h3 className="mt-6 text-2xl font-medium text-gray-900">
                     Smart Boards
                     </h3>
@@ -625,11 +589,7 @@ export default function TechnologyPage() {
 
               {/* Turnstiles */}
               <div className="rounded-xl bg-white p-8 shadow-[0_12px_35px_rgba(0,0,0,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(0,0,0,0.10)]">
-
-                    <span className="text-sm font-medium text-green-600">
-                    02
-                    </span>
-
+  
                     <h3 className="mt-6 text-2xl font-medium text-gray-900">
                     Access Control Turnstiles
                     </h3>
@@ -646,10 +606,6 @@ export default function TechnologyPage() {
               {/* Boom Barriers */}
               <div className="rounded-xl bg-white p-8 shadow-[0_12px_35px_rgba(0,0,0,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(0,0,0,0.10)]">
 
-                    <span className="text-sm font-medium text-green-600">
-                    03
-                    </span>
-
                     <h3 className="mt-6 text-2xl font-medium text-gray-900">
                     Boom Barriers
                     </h3>
@@ -664,10 +620,6 @@ export default function TechnologyPage() {
               {/* CCTV Camera*/}
 
                  <div className="rounded-xl bg-white p-8 shadow-[0_12px_35px_rgba(0,0,0,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(0,0,0,0.10)]">
-
-                    <span className="text-sm font-medium text-green-600">
-                    03
-                    </span>
 
                     <h3 className="mt-6 text-2xl font-medium text-gray-900">
                     CCTV Camera
@@ -712,9 +664,6 @@ export default function TechnologyPage() {
             <div className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-3">
 
               <div className="border-t border-white/10 pt-7">
-                <span className="text-sm text-green-400">
-                  01
-                </span>
 
                 <h3 className="mt-5 text-2xl font-medium text-white">
                   Global Partnerships
@@ -728,9 +677,6 @@ export default function TechnologyPage() {
 
 
               <div className="border-t border-white/10 pt-7">
-                <span className="text-sm text-green-400">
-                  02
-                </span>
 
                 <h3 className="mt-5 text-2xl font-medium text-white">
                   Local Innovation
@@ -744,9 +690,6 @@ export default function TechnologyPage() {
 
 
               <div className="border-t border-white/10 pt-7">
-                <span className="text-sm text-green-400">
-                  03
-                </span>
 
                 <h3 className="mt-5 text-2xl font-medium text-white">
                   Complete Solutions
