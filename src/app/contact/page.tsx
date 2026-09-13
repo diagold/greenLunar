@@ -1,8 +1,299 @@
 
+
+"use client";
+
+import { FormEvent, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 export default function ContactPage() {
+
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    location: "",
+    subject: "",
+    message: "",
+  });
+
+  const [errors, setErrors] = useState({
+  firstName: "",
+  lastName: "",
+  email: "",
+  location: "",
+  subject: "",
+  message: "",
+});
+
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("");
+
+  // const handleChange = (
+  //   e: React.ChangeEvent<
+  //     HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  //   >
+  // ) => {
+  //   const { name, value } = e.target;
+
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     [name]: value,
+  //   }));
+
+  //   setErrors((prev) => ({
+  //     ...prev,
+  //     [name]: "",
+  //   }));
+  // };
+
+
+const handleChange = (
+  e: React.ChangeEvent<
+    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  >
+) => {
+  const { name, value } = e.target;
+
+  setFormData((prev) => ({
+    ...prev,
+    [name]: value,
+  }));
+
+  let error = "";
+
+  // First Name
+  if (name === "firstName") {
+    const nameRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$/;
+
+    if (value && !nameRegex.test(value)) {
+      error = "First name must contain letters only.";
+    }
+  }
+
+  // Last Name
+  if (name === "lastName") {
+    const nameRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$/;
+
+    if (value && !nameRegex.test(value)) {
+      error = "Last name must contain letters only.";
+    }
+  }
+
+  // Email
+  if (name === "email") {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (value && !emailRegex.test(value)) {
+      error = "Please enter a valid email address.";
+    }
+  }
+
+  // Location
+  if (name === "location") {
+    if (!value) {
+      error = "Please select your location.";
+    }
+  }
+
+  // Subject
+  if (name === "subject") {
+    if (value && value.trim().length < 3) {
+      error = "Subject must be at least 3 characters.";
+    }
+  }
+
+  // Message
+  if (name === "message") {
+    if (value && value.trim().length < 10) {
+      error = "Message must be at least 10 characters.";
+    }
+  }
+
+  setErrors((prev) => ({
+    ...prev,
+    [name]: error,
+  }));
+};
+
+  const validateForm = () => {
+
+  const newErrors = {
+    firstName: "",
+    lastName: "",
+    email: "",
+    location: "",
+    subject: "",
+    message: "",
+  };
+
+  let isValid = true;
+
+  const nameRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$/;
+
+  if (!formData.firstName.trim()) {
+    newErrors.firstName = "First name is required.";
+    isValid = false;
+  } else if (!nameRegex.test(formData.firstName.trim())) {
+    newErrors.firstName = "First name must contain letters only.";
+    isValid = false;
+  } else if (formData.firstName.trim().length < 2) {
+    newErrors.firstName = "First name must be at least 2 characters.";
+    isValid = false;
+  }
+
+  if (!formData.lastName.trim()) {
+    newErrors.lastName = "Last name is required.";
+    isValid = false;
+  } else if (!nameRegex.test(formData.lastName.trim())) {
+    newErrors.lastName = "Last name must contain letters only.";
+    isValid = false;
+  } else if (formData.lastName.trim().length < 2) {
+    newErrors.lastName = "Last name must be at least 2 characters.";
+    isValid = false;
+  }
+
+  if (!formData.email.trim()) {
+    newErrors.email = "Email address is required.";
+    isValid = false;
+  } else {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address.";
+      isValid = false;
+    }
+  }
+
+  if (!formData.location) {
+    newErrors.location = "Please select your location.";
+    isValid = false;
+  }
+
+  if (!formData.subject.trim()) {
+    newErrors.subject = "Subject is required.";
+    isValid = false;
+  } else if (formData.subject.trim().length < 3) {
+    newErrors.subject = "Subject must be at least 3 characters.";
+    isValid = false;
+  }
+
+  if (!formData.message.trim()) {
+    newErrors.message = "Message is required.";
+    isValid = false;
+  } else if (formData.message.trim().length < 10) {
+    newErrors.message = "Message must be at least 10 characters.";
+    isValid = false;
+  }
+
+  setErrors(newErrors);
+
+  return isValid;
+};
+
+  // const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  //   e.preventDefault();
+
+  //   setLoading(true);
+  //   setStatus("");
+
+  //   try {
+  //     const response = await fetch("/api/contact", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify(formData),
+  //     });
+
+  //     const data = await response.json();
+
+  //     if (!response.ok) {
+  //       throw new Error(data.message || "Unable to send message");
+  //     }
+
+  //     setStatus("Message sent successfully.");
+
+  //     setFormData({
+  //       firstName: "",
+  //       lastName: "",
+  //       email: "",
+  //       location: "",
+  //       subject: "",
+  //       message: "",
+  //     });
+  //   } catch (error) {
+  //     console.error("Contact form error:", error);
+
+  //     if (error instanceof Error) {
+  //       setStatus(error.message);
+  //     } else {
+  //       setStatus("Something went wrong. Please try again.");
+  //     }
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+
+  const isValid = validateForm();
+
+  if (!isValid) {
+    setStatus("Please correct the highlighted fields.");
+    return;
+  }
+
+  setLoading(true);
+  setStatus("");
+
+  try {
+    const response = await fetch("/api/contact", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Unable to send message");
+    }
+
+    setStatus("Message sent successfully.");
+
+    setFormData({
+      firstName: "",
+      lastName: "",
+      email: "",
+      location: "",
+      subject: "",
+      message: "",
+    });
+
+    setErrors({
+      firstName: "",
+      lastName: "",
+      email: "",
+      location: "",
+      subject: "",
+      message: "",
+    });
+  } catch (error) {
+    console.error("Contact form error:", error);
+
+    if (error instanceof Error) {
+      setStatus(error.message);
+    } else {
+      setStatus("Something went wrong. Please try again.");
+    }
+  } finally {
+    setLoading(false);
+  }
+};
+
   return (
     <main className="min-h-screen bg-white">
       <Navbar />
@@ -14,7 +305,7 @@ export default function ContactPage() {
             {/* Hero Image */}
             <div className="absolute inset-0">
                 <img
-                src="/images/hero-team.jpg"
+                src="https://res.cloudinary.com/diobpauw/image/upload/v1789311018/pawel-czerwinski--0xCCPIbl3M-unsplash.jpg"
                 alt="GreenLunar Technologies"
                 className="h-full w-full object-cover object-center"
                 />
@@ -222,7 +513,7 @@ export default function ContactPage() {
                 </h3>
             </div>
 
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={handleSubmit}>
 
                 {/* First Name + Last Name */}
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -236,13 +527,25 @@ export default function ContactPage() {
                     First Name
                     </label>
 
-                    <input
-                    id="firstName"
-                    name="firstName"
-                    type="text"
-                    placeholder="Your first name"
-                    className="w-full rounded-md border border-gray-200 bg-white px-4 py-3.5 text-sm text-gray-900 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/10"
-                    />
+                   <input
+                        id="firstName"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        type="text"
+                        placeholder="Your first name"
+                        className={`w-full rounded-md border bg-white px-4 py-3.5 text-sm text-gray-900 outline-none transition ${
+                          errors.firstName
+                            ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
+                            : "border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/10"
+                        }`}
+                      />
+
+                      {errors.firstName && (
+                        <p className="mt-2 text-sm text-red-600">
+                          {errors.firstName}
+                        </p>
+                      )}
                 </div>
 
                 {/* Last Name */}
@@ -255,12 +558,24 @@ export default function ContactPage() {
                     </label>
 
                     <input
-                    id="lastName"
-                    name="lastName"
-                    type="text"
-                    placeholder="Your last name"
-                    className="w-full rounded-md border border-gray-200 bg-white px-4 py-3.5 text-sm text-gray-900 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/10"
+                      id="lastName"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      type="text"
+                      placeholder="Your first name"
+                      className={`w-full rounded-md border bg-white px-4 py-3.5 text-sm text-gray-900 outline-none transition ${
+                        errors.firstName
+                          ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
+                          : "border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/10"
+                      }`}
                     />
+
+                    {errors.lastName && (
+                      <p className="mt-2 text-sm text-red-600">
+                        {errors.lastName}
+                      </p>
+                    )}
                 </div>
 
                 </div>
@@ -277,11 +592,23 @@ export default function ContactPage() {
                 <input
                     id="email"
                     name="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    className="w-full rounded-md border border-gray-200 bg-white px-4 py-3.5 text-sm text-gray-900 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/10"
-                />
-                </div>
+                    value={formData.email}
+                    onChange={handleChange}
+                    type="text"
+                    placeholder="Your first name"
+                    className={`w-full rounded-md border bg-white px-4 py-3.5 text-sm text-gray-900 outline-none transition ${
+                      errors.email
+                        ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
+                        : "border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/10"
+                    }`}
+                  />
+
+                    {errors.email && (
+                      <p className="mt-2 text-sm text-red-600">
+                        {errors.email}
+                      </p>
+                    )}
+                  </div>
 
                 {/* Location */}
                 <div>
@@ -295,9 +622,19 @@ export default function ContactPage() {
                 <select
                     id="location"
                     name="location"
-                    defaultValue=""
-                    className="w-full rounded-md border border-gray-200 bg-white px-4 py-3.5 text-sm text-gray-900 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/10"
+                    value={formData.location}
+                    onChange={handleChange}
+                    className={`w-full rounded-md border bg-white px-4 py-3.5 text-sm text-gray-900 outline-none transition ${
+                      errors.location
+                        ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
+                        : "border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/10"
+                    }`}
                 >
+                  {errors.location && (
+                  <p className="mt-2 text-sm text-red-600">
+                    {errors.location}
+                  </p>
+                )}
                     <option value="" disabled>
                     Select your state
                     </option>
@@ -354,10 +691,22 @@ export default function ContactPage() {
                 <input
                     id="subject"
                     name="subject"
+                    value={formData.subject}
+                    onChange={handleChange}
                     type="text"
-                    placeholder="How can we help?"
-                    className="w-full rounded-md border border-gray-200 bg-white px-4 py-3.5 text-sm text-gray-900 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/10"
-                />
+                    placeholder="Your first name"
+                    className={`w-full rounded-md border bg-white px-4 py-3.5 text-sm text-gray-900 outline-none transition ${
+                      errors.subject
+                        ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
+                        : "border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/10"
+                    }`}
+                  />
+
+                  {errors.subject && (
+                    <p className="mt-2 text-sm text-red-600">
+                      {errors.subject}
+                    </p>
+                  )}
                 </div>
 
                 {/* Message */}
@@ -369,21 +718,37 @@ export default function ContactPage() {
                     Message
                 </label>
 
-                <textarea
-                    id="message"
-                    name="message"
-                    rows={6}
-                    placeholder="Tell us about your project..."
-                    className="w-full resize-none rounded-md border border-gray-200 bg-white px-4 py-3.5 text-sm text-gray-900 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/10"
+                <textarea                            
+                id="message"
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
+                aria-required                    
+                rows={6}
+                placeholder="Tell us about your project..."
+                className={`w-full rounded-md border bg-white px-4 py-3.5 text-sm text-gray-900 outline-none transition ${
+                  errors.firstName
+                    ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
+                    : "border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/10"
+             }`}
                 />
+
+                {errors.message && (
+                  <p className="mt-2 text-sm text-red-600">
+                    {errors.message}
+                  </p>
+                )}     
+            
                 </div>
 
                 {/* Submit */}
                 <button
                 type="submit"
+                disabled = {loading}
                 className="inline-flex items-center justify-center rounded-md bg-green-600 px-8 py-4 text-sm font-medium text-white shadow-[0_10px_30px_rgba(22,163,74,0.20)] transition-all duration-300 hover:bg-green-700 hover:shadow-[0_14px_35px_rgba(22,163,74,0.28)]"
                 >
-                Send Message
+                
+                {loading ? "Sending..." : "Send Message"}
 
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -400,6 +765,11 @@ export default function ContactPage() {
                     />
                 </svg>
                 </button>
+                {status && (
+                  <p className="mt-4 text-sm text-gray-700">
+                    {status}
+                  </p>
+                )}
 
             </form>
             </div>
