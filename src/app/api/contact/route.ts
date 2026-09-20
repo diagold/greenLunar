@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 function escapeHtml(value: string) {
   return value
@@ -25,7 +26,14 @@ export async function POST(request: Request) {
 
     const resend = new Resend(apiKey);
 
-    const body = await request.json();
+    const body: unknown = await request.json();
+
+    if (!body || typeof body !== "object") {
+      return NextResponse.json(
+        { message: "Invalid request body." },
+        { status: 400 }
+      );
+    }
 
     const {
       firstName,
@@ -34,19 +42,26 @@ export async function POST(request: Request) {
       location,
       subject,
       message,
-    } = body;
+    } = body as Record<string, unknown>;
+
 
     // -----------------------------
     // Server-side validation
     // -----------------------------
 
     if (
-      !firstName ||
-      !lastName ||
-      !email ||
-      !location ||
-      !subject ||
-      !message
+      typeof firstName !== "string" ||
+      typeof lastName !== "string" ||
+      typeof email !== "string" ||
+      typeof location !== "string" ||
+      typeof subject !== "string" ||
+      typeof message !== "string" ||
+      !firstName.trim() ||
+      !lastName.trim() ||
+      !email.trim() ||
+      !location.trim() ||
+      !subject.trim() ||
+      !message.trim()
     ) {
       return NextResponse.json(
         { message: "Please complete all required fields." },
@@ -89,6 +104,34 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { message: "Message must be at least 10 characters." },
         { status: 400 }
+      );
+    }
+
+    // -----------------------------
+    // Save enquiry to Supabase
+    // -----------------------------
+
+    const supabase = createAdminClient();
+
+    const { data: enquiry, error: databaseError } = await supabase
+      .from("enquiries")
+      .insert({
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        email: email.trim(),
+        location: location.trim(),
+        subject: subject.trim(),
+        message: message.trim(),
+      })
+      .select("id")
+      .single();
+
+    if (databaseError) {
+      console.error("Supabase enquiry error:", databaseError);
+
+      return NextResponse.json(
+        { message: "Unable to save your enquiry. Please try again." },
+        { status: 500 }
       );
     }
 
@@ -715,6 +758,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         message: "Message sent successfully.",
+        enquiryId: enquiry.id,
       },
       { status: 200 }
     );
