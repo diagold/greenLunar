@@ -180,6 +180,19 @@ export default function Navbar() {
             Contact Us
           </a>
 
+        <Link
+          href={routes.news}
+          className="
+            text-sm
+            font-medium
+            text-gray-700
+            transition-colors
+            duration-300
+            hover:text-green-600
+          "
+        >
+          News
+        </Link>
 
           {/* Company Dropdown */}
           <div

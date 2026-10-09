@@ -1,104 +1,254 @@
 "use client";
 
-import { useState } from "react";
-import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import {
-  LayoutDashboard,
-  Inbox,
+  BarChart3,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   FileText,
-  Package,
-  Layers3,
-  BriefcaseBusiness,
-  Users,
+  FolderKanban,
   Handshake,
-  Images,
+  Home,
+  ImageIcon,
+  Info,
+  Layers3,
+  Menu,
+  Newspaper,
+  Package,
   Search,
   Settings,
   ShieldCheck,
-  ScrollText,
-  ChevronLeft,
-  ChevronRight,
+  Users,
   X,
 } from "lucide-react";
 
+/* =========================================================
+   TYPES
+========================================================= */
+
+type NavChild = {
+  label: string;
+  href: string;
+};
+
+type NavItem = {
+  label: string;
+  href?: string;
+  icon: React.ElementType;
+  badge?: number;
+  children?: NavChild[];
+};
+
+type NavSection = {
+  title?: string;
+  items: NavItem[];
+};
+
 type AdminSidebarProps = {
   mobileOpen: boolean;
-  setMobileOpen: (open: boolean) => void;
+  setMobileOpen: React.Dispatch<React.SetStateAction<boolean>>;
   newEnquiries: number;
 };
 
-const navigation = [
-  {
-    label: "Dashboard",
-    href: "/admin",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Enquiries",
-    href: "/admin/enquiries",
-    icon: Inbox,
-  },
-  {
-    label: "Pages",
-    href: "/admin/pages",
-    icon: FileText,
-  },
-  {
-    label: "Products",
-    href: "/admin/products",
-    icon: Package,
-  },
-  {
-    label: "Services",
-    href: "/admin/services",
-    icon: Layers3,
-  },
-  {
-    label: "Projects",
-    href: "/admin/projects",
-    icon: BriefcaseBusiness,
-  },
-  {
-    label: "Team",
-    href: "/admin/team",
-    icon: Users,
-  },
-  {
-    label: "Partners",
-    href: "/admin/partners",
-    icon: Handshake,
-  },
-  {
-    label: "Media",
-    href: "/admin/media",
-    icon: Images,
-  },
-];
+/* =========================================================
+   NAVIGATION
+========================================================= */
 
-const administration = [
-  {
-    label: "SEO",
-    href: "/admin/seo",
-    icon: Search,
-  },
-  {
-    label: "Settings",
-    href: "/admin/settings",
-    icon: Settings,
-  },
-  {
-    label: "Users",
-    href: "/admin/users",
-    icon: ShieldCheck,
-  },
-  {
-    label: "Audit Log",
-    href: "/admin/audit-log",
-    icon: ScrollText,
-  },
-];
+function getNavigation(enquiryCount: number): NavSection[] {
+  return [
+    {
+      items: [
+        {
+          label: "Dashboard",
+          href: "/admin",
+          icon: BarChart3,
+        },
+      ],
+    },
+
+    {
+      title: "WEBSITE",
+      items: [
+        {
+          label: "Homepage",
+          icon: Home,
+          children: [
+            // {
+            //   label: "Overview",
+            //   href: "/admin/homepage",
+            // },
+            {
+              label: "Hero",
+              href: "/admin/homepage/hero",
+            },
+            {
+              label: "Core Solutions",
+              href: "/admin/homepage/core-solutions",
+            },
+            {
+              label: "Why Choose Us",
+              href: "/admin/homepage/why-choose-us",
+            }, 
+            {
+              label: "Market Reach",
+              href: "/admin/homepage/market-reach",
+            },
+             
+             {
+                label: "Trust Section",
+               href: "/admin/homepage/trust",
+              },
+              {
+                label: "Member Company",
+                href: "/admin/homepage/member-company",
+              },
+              {
+                label: "Partners & Clients",
+               href: "/admin/homepage/partners-clients",
+              },
+            
+          ],
+        },
+
+        /*
+         * ABOUT US
+         *
+         * We are preparing the group now, but its child pages
+         * should be added as we build the About CMS.
+         */
+        {
+          label: "About Us",
+          icon: Info,
+          children: [
+     
+            {
+              label: "Hero",
+              href: "/admin/about/hero",
+            },
+            {
+              label: "Who We Are",
+              href: "/admin/about/who-we-are",
+            },
+            {
+              label: "At A Glance",
+              href: "/admin/about/at-a-glance",
+            }, 
+            {
+              label: "Our Purpose",
+              href: "/admin/about/purpose",
+            },
+             
+             {
+                label: "Certification & Standard",
+               href: "/admin/about/certifications-standards",
+              },
+              {
+                label: "Leadership",
+                href: "/admin/about/leadership",
+              },
+              // {
+              //   label: "Partners & Clients",
+              //  href: "/admin/homepage/partners-clients",
+              // },
+            
+          ],
+        },
+        {
+          label: "About Us",
+          icon: Info,
+        },
+
+        {
+          label: "Services",
+          href: "/admin/services",
+          icon: Layers3,
+        },
+
+        {
+          label: "Products",
+          href: "/admin/products",
+          icon: Package,
+        },
+
+        {
+          label: "News",
+          href: "/admin/news",
+          icon: Newspaper,
+          
+        },
+
+
+      ],
+    },
+
+    {
+      title: "CONTENT",
+      items: [
+        {
+          label: "Enquiries",
+          href: "/admin/enquiries",
+          icon: FileText,
+          badge: enquiryCount,
+        },
+        {
+          label: "Projects",
+          href: "/admin/projects",
+          icon: FolderKanban,
+        },
+        {
+          label: "Team",
+          href: "/admin/team",
+          icon: Users,
+        },
+        {
+          label: "Partners",
+          href: "/admin/partners",
+          icon: Handshake,
+        },
+        {
+          label: "Media",
+          href: "/admin/media",
+          icon: ImageIcon,
+        },
+      ],
+    },
+
+    {
+      title: "ADMINISTRATION",
+      items: [
+        {
+          label: "SEO",
+          href: "/admin/seo",
+          icon: Search,
+        },
+        {
+          label: "Settings",
+          href: "/admin/settings",
+          icon: Settings,
+        },
+        {
+          label: "Users",
+          href: "/admin/users",
+          icon: ShieldCheck,
+        },
+        {
+          label: "Audit Log",
+          href: "/admin/audit-log",
+          icon: FileText,
+        },
+      ],
+    },
+  ];
+}
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
 
 export default function AdminSidebar({
   mobileOpen,
@@ -109,234 +259,703 @@ export default function AdminSidebar({
 
   const [collapsed, setCollapsed] = useState(false);
 
-  const isActive = (href: string) => {
+  const navigation = getNavigation(newEnquiries);
+
+  /* =========================================================
+     EXPANDED MENU STATE
+  ========================================================= */
+
+  const [expandedMenus, setExpandedMenus] = useState<
+    Record<string, boolean>
+  >({});
+
+  /* =========================================================
+     CLOSE MOBILE SIDEBAR WHEN ROUTE CHANGES
+  ========================================================= */
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname, setMobileOpen]);
+
+  /* =========================================================
+     AUTOMATICALLY OPEN CURRENT PAGE GROUP
+  ========================================================= */
+
+  useEffect(() => {
+    const nextExpanded: Record<string, boolean> = {};
+
+    navigation.forEach((section) => {
+      section.items.forEach((item) => {
+        if (!item.children?.length) return;
+
+        const hasActiveChild = item.children.some((child) =>
+          isExactOrNestedActive(child.href)
+        );
+
+        if (hasActiveChild) {
+          nextExpanded[item.label] = true;
+        }
+      });
+    });
+
+    setExpandedMenus((current) => ({
+      ...current,
+      ...nextExpanded,
+    }));
+  }, [pathname]);
+
+  /* =========================================================
+     ACTIVE ROUTES
+  ========================================================= */
+
+  function isExactOrNestedActive(href: string) {
     if (href === "/admin") {
       return pathname === "/admin";
     }
 
-    return pathname.startsWith(href);
-  };
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
+  /*
+   * Child routes need more precise matching.
+   *
+   * Without this, /admin/homepage would also appear active
+   * when visiting /admin/homepage/hero.
+   */
+  function isChildActive(
+    href: string,
+    siblings: NavChild[]
+  ) {
+    if (pathname === href) {
+      return true;
+    }
+
+    const moreSpecificChildExists = siblings.some(
+      (child) =>
+        child.href !== href &&
+        child.href.startsWith(`${href}/`) &&
+        (pathname === child.href ||
+          pathname.startsWith(`${child.href}/`))
+    );
+
+    if (moreSpecificChildExists) {
+      return false;
+    }
+
+    return pathname.startsWith(`${href}/`);
+  }
+
+  function isParentActive(item: NavItem) {
+    if (item.children?.length) {
+      return item.children.some((child) =>
+        isChildActive(child.href, item.children!)
+      );
+    }
+
+    return item.href
+      ? isExactOrNestedActive(item.href)
+      : false;
+  }
+
+  /* =========================================================
+     MENU CONTROLS
+  ========================================================= */
+
+  function toggleMenu(label: string) {
+    if (collapsed) {
+      setCollapsed(false);
+
+      setExpandedMenus((current) => ({
+        ...current,
+        [label]: true,
+      }));
+
+      return;
+    }
+
+    setExpandedMenus((current) => ({
+      ...current,
+      [label]: !current[label],
+    }));
+  }
 
   return (
     <>
-      {/* MOBILE OVERLAY */}
+      {/* =====================================================
+          MOBILE MENU BUTTON
+      ====================================================== */}
+
+      <button
+        type="button"
+        onClick={() => setMobileOpen(true)}
+        className="
+          fixed
+          left-4
+          top-4
+          z-40
+          flex
+          h-10
+          w-10
+          items-center
+          justify-center
+          rounded-xl
+          border
+          border-gray-200
+          bg-white
+          text-gray-700
+          shadow-sm
+          lg:hidden
+        "
+        aria-label="Open admin navigation"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      {/* =====================================================
+          MOBILE OVERLAY
+      ====================================================== */}
+
       {mobileOpen && (
-        <div
+        <button
+          type="button"
+          aria-label="Close admin navigation"
           onClick={() => setMobileOpen(false)}
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
+          className="
+            fixed
+            inset-0
+            z-40
+            bg-black/40
+            backdrop-blur-[1px]
+            lg:hidden
+          "
         />
       )}
 
-      {/* SIDEBAR */}
+      {/* =====================================================
+          SIDEBAR
+      ====================================================== */}
+
       <aside
         className={`
-          fixed left-0 top-0 z-50
-          flex h-screen flex-col
-          border-r border-white/10
+          fixed
+          inset-y-0
+          left-0
+          z-50
+          flex
+          flex-col
           bg-[#073f30]
           text-white
-          transition-all duration-300
+          shadow-xl
+          transition-all
+          duration-300
 
-          ${collapsed ? "lg:w-[88px]" : "lg:w-[270px]"}
+          lg:translate-x-0
 
           ${
             mobileOpen
               ? "translate-x-0"
-              : "-translate-x-full lg:translate-x-0"
+              : "-translate-x-full"
           }
 
-          w-[270px]
+          ${
+            collapsed
+              ? "w-[88px]"
+              : "w-[260px]"
+          }
         `}
       >
-        {/* LOGO */}
+        {/* =================================================
+            LOGO
+        ================================================== */}
+
         <div
-          className={`
-            flex h-[82px] items-center
-            border-b border-white/10
+          className="
+            flex
+            h-[108px]
+            shrink-0
+            items-center
+            justify-between
+            border-b
+            border-white/10
             px-5
-            ${collapsed ? "lg:justify-center" : "justify-between"}
-          `}
+          "
         >
           <Link
             href="/admin"
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3"
+            className={`
+              flex
+              items-center
+              ${
+                collapsed
+                  ? "w-full justify-center"
+                  : "gap-3"
+              }
+            `}
           >
-            <img
-              src="https://res.cloudinary.com/diobpauw/image/upload/v1789023068/ChatGPT_Image_Sep_10_2026_07_50_53_AM.png"
-              alt="Green Lunar"
-              className={`
-                object-contain transition-all duration-300
-                ${collapsed ? "h-10 w-10" : "h-12 w-40"}
-              `}
-            />
-            
+            <div
+              className="
+                relative
+                h-14
+                w-14
+                shrink-0
+              "
+            >
+              <Image
+                src="https://res.cloudinary.com/diobpauw/image/upload/v1789023068/ChatGPT_Image_Sep_10_2026_07_50_53_AM.png"
+                alt="Green Lunar"
+                fill
+                sizes="56px"
+                className="object-contain"
+                priority
+              />
+            </div>
+
+            {!collapsed && (
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white">
+                  Green Lunar
+                </p>
+
+                <p className="mt-0.5 text-[11px] text-white/50">
+                  Admin Portal
+                </p>
+              </div>
+            )}
           </Link>
 
           {/* MOBILE CLOSE */}
+
           <button
             type="button"
             onClick={() => setMobileOpen(false)}
-            className="rounded-lg p-2 text-white/70 transition hover:bg-white/10 hover:text-white lg:hidden"
-            aria-label="Close navigation"
+            className="
+              flex
+              h-9
+              w-9
+              shrink-0
+              items-center
+              justify-center
+              rounded-lg
+              text-white/70
+              transition
+              hover:bg-white/10
+              hover:text-white
+              lg:hidden
+            "
+            aria-label="Close admin navigation"
           >
-            <X size={20} />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* NAVIGATION */}
-        <div className="flex-1 overflow-y-auto px-3 py-6">
-          {!collapsed && (
-            <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">
-              Website
-            </p>
-          )}
+        {/* =================================================
+            NAVIGATION
+        ================================================== */}
 
-          <nav className="space-y-1">
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
+        <nav
+          className="
+            flex-1
+            overflow-y-auto
+            px-3
+            py-6
+          "
+        >
+          <div className="space-y-7">
+            {navigation.map((section, sectionIndex) => (
+              <div
+                key={
+                  section.title ??
+                  `section-${sectionIndex}`
+                }
+              >
+                {/* SECTION TITLE */}
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  title={collapsed ? item.label : undefined}
-                  onClick={() => setMobileOpen(false)}
-                  className={`
-                    group flex min-h-[46px] items-center
-                    rounded-xl px-3
-                    transition-all duration-200
-
-                    ${
-                      collapsed
-                        ? "lg:justify-center lg:gap-0"
-                        : "gap-3"
-                    }
-
-                    ${
-                      active
-                        ? "bg-white text-[#073f30] shadow-sm"
-                        : "text-white/70 hover:bg-white/10 hover:text-white"
-                    }
-                  `}
-                >
-                  <Icon
-                    size={20}
-                    strokeWidth={active ? 2.3 : 1.8}
-                    className="shrink-0"
-                  />
-
-                  <span
-                    className={`
-                      whitespace-nowrap text-sm font-medium
-                      ${collapsed ? "lg:hidden" : ""}
-                    `}
+                {section.title && !collapsed && (
+                  <p
+                    className="
+                      mb-3
+                      px-3
+                      text-[10px]
+                      font-semibold
+                      uppercase
+                      tracking-[0.22em]
+                      text-white/40
+                    "
                   >
-                    {item.label}
-                  </span>
-                  {item.href === "/admin/enquiries" &&
-                    newEnquiries > 0 && (
-                      <span
+                    {section.title}
+                  </p>
+                )}
+
+                {section.title && collapsed && (
+                  <div
+                    className="
+                      mx-auto
+                      mb-4
+                      h-px
+                      w-8
+                      bg-white/10
+                    "
+                  />
+                )}
+
+                {/* ITEMS */}
+
+                <div className="space-y-1">
+                  {section.items.map((item) => {
+                    const Icon = item.icon;
+
+                    const active =
+                      isParentActive(item);
+
+                    const hasChildren =
+                      Boolean(item.children?.length);
+
+                    const expanded =
+                      Boolean(
+                        expandedMenus[item.label]
+                      );
+
+                    /* =====================================
+                       PARENT WITH SUBMENU
+                    ====================================== */
+
+                    if (hasChildren) {
+                      return (
+                        <div key={item.label}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              toggleMenu(item.label)
+                            }
+                            title={
+                              collapsed
+                                ? item.label
+                                : undefined
+                            }
+                            className={`
+                              group
+                              relative
+                              flex
+                              min-h-[46px]
+                              w-full
+                              items-center
+                              rounded-xl
+                              transition-all
+                              duration-200
+
+                              ${
+                                collapsed
+                                  ? "justify-center px-2"
+                                  : "gap-3 px-3"
+                              }
+
+                              ${
+                                active
+                                  ? "bg-white/15 text-white"
+                                  : "text-white/75 hover:bg-white/10 hover:text-white"
+                              }
+                            `}
+                          >
+                            <Icon
+                              className={`
+                                h-[19px]
+                                w-[19px]
+                                shrink-0
+
+                                ${
+                                  active
+                                    ? "text-green-300"
+                                    : "text-white/70 group-hover:text-white"
+                                }
+                              `}
+                            />
+
+                            {!collapsed && (
+                              <>
+                                <span
+                                  className="
+                                    flex-1
+                                    truncate
+                                    text-left
+                                    text-sm
+                                    font-medium
+                                  "
+                                >
+                                  {item.label}
+                                </span>
+
+                                <ChevronDown
+                                  className={`
+                                    h-4
+                                    w-4
+                                    shrink-0
+                                    text-white/50
+                                    transition-transform
+                                    duration-200
+
+                                    ${
+                                      expanded
+                                        ? "rotate-180"
+                                        : ""
+                                    }
+                                  `}
+                                />
+                              </>
+                            )}
+                          </button>
+
+                          {/* CHILDREN */}
+
+                          {!collapsed &&
+                            expanded && (
+                              <div
+                                className="
+                                  relative
+                                  ml-[21px]
+                                  mt-1
+                                  space-y-1
+                                  border-l
+                                  border-white/10
+                                  pb-1
+                                  pl-4
+                                "
+                              >
+                                {item.children!.map(
+                                  (child) => {
+                                    const childActive =
+                                      isChildActive(
+                                        child.href,
+                                        item.children!
+                                      );
+
+                                    return (
+                                      <Link
+                                        key={child.href}
+                                        href={child.href}
+                                        className={`
+                                          relative
+                                          flex
+                                          min-h-[38px]
+                                          items-center
+                                          rounded-lg
+                                          px-3
+                                          text-[13px]
+                                          font-medium
+                                          transition-all
+                                          duration-200
+
+                                          ${
+                                            childActive
+                                              ? "bg-white text-[#073f30] shadow-sm"
+                                              : "text-white/60 hover:bg-white/10 hover:text-white"
+                                          }
+                                        `}
+                                      >
+                                        {/* ACTIVE DOT */}
+
+                                        <span
+                                          className={`
+                                            mr-3
+                                            h-1.5
+                                            w-1.5
+                                            shrink-0
+                                            rounded-full
+
+                                            ${
+                                              childActive
+                                                ? "bg-green-500"
+                                                : "bg-white/20"
+                                            }
+                                          `}
+                                        />
+
+                                        <span className="truncate">
+                                          {
+                                            child.label
+                                          }
+                                        </span>
+                                      </Link>
+                                    );
+                                  }
+                                )}
+                              </div>
+                            )}
+                        </div>
+                      );
+                    }
+
+                    /* =====================================
+                       NORMAL NAVIGATION ITEM
+                    ====================================== */
+
+                    if (!item.href) {
+                      return null;
+                    }
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        title={
+                          collapsed
+                            ? item.label
+                            : undefined
+                        }
                         className={`
-                          ml-auto flex min-w-5 items-center justify-center
-                          rounded-full px-1.5 py-0.5
-                          text-[11px] font-bold
+                          group
+                          relative
+                          flex
+                          min-h-[46px]
+                          items-center
+                          rounded-xl
+                          transition-all
+                          duration-200
+
+                          ${
+                            collapsed
+                              ? "justify-center px-2"
+                              : "gap-3 px-3"
+                          }
+
                           ${
                             active
-                              ? "bg-[#073f30] text-white"
-                              : "bg-white text-[#073f30]"
+                              ? "bg-white text-[#073f30] shadow-sm"
+                              : "text-white/75 hover:bg-white/10 hover:text-white"
                           }
-                          ${collapsed ? "lg:hidden" : ""}
                         `}
                       >
-                        {newEnquiries > 99 ? "99+" : newEnquiries}
-                      </span>
-                    )}
-                </Link>
-              );
-            })}
-          </nav>
+                        <Icon
+                          className={`
+                            h-[19px]
+                            w-[19px]
+                            shrink-0
 
-          <div className="my-6 border-t border-white/10" />
+                            ${
+                              active
+                                ? "text-[#073f30]"
+                                : "text-white/70 group-hover:text-white"
+                            }
+                          `}
+                        />
 
-          {!collapsed && (
-            <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">
-              Administration
-            </p>
-          )}
+                        {!collapsed && (
+                          <>
+                            <span
+                              className="
+                                flex-1
+                                truncate
+                                text-sm
+                                font-medium
+                              "
+                            >
+                              {item.label}
+                            </span>
 
-          <nav className="space-y-1">
-            {administration.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
+                            {typeof item.badge ===
+                              "number" &&
+                              item.badge > 0 && (
+                                <span
+                                  className={`
+                                    flex
+                                    min-w-[22px]
+                                    items-center
+                                    justify-center
+                                    rounded-full
+                                    px-1.5
+                                    py-0.5
+                                    text-[10px]
+                                    font-semibold
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  title={collapsed ? item.label : undefined}
-                  onClick={() => setMobileOpen(false)}
-                  className={`
-                    group flex min-h-[46px] items-center
-                    rounded-xl px-3
-                    transition-all duration-200
+                                    ${
+                                      active
+                                        ? "bg-[#073f30] text-white"
+                                        : "bg-green-400 text-[#073f30]"
+                                    }
+                                  `}
+                                >
+                                  {item.badge >
+                                  99
+                                    ? "99+"
+                                    : item.badge}
+                                </span>
+                              )}
+                          </>
+                        )}
 
-                    ${
-                      collapsed
-                        ? "lg:justify-center lg:gap-0"
-                        : "gap-3"
-                    }
+                        {/* COLLAPSED BADGE */}
 
-                    ${
-                      active
-                        ? "bg-white text-[#073f30] shadow-sm"
-                        : "text-white/70 hover:bg-white/10 hover:text-white"
-                    }
-                  `}
-                >
-                  <Icon
-                    size={20}
-                    strokeWidth={active ? 2.3 : 1.8}
-                    className="shrink-0"
-                  />
+                        {collapsed &&
+                          typeof item.badge ===
+                            "number" &&
+                          item.badge > 0 && (
+                            <span
+                              className="
+                                absolute
+                                right-2
+                                top-2
+                                h-2
+                                w-2
+                                rounded-full
+                                bg-green-400
+                              "
+                            />
+                          )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </nav>
 
-                  <span
-                    className={`
-                      whitespace-nowrap text-sm font-medium
-                      ${collapsed ? "lg:hidden" : ""}
-                    `}
-                  >
-                    {item.label}
-                  </span>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
+        {/* =================================================
+            COLLAPSE CONTROL
+        ================================================== */}
 
-        {/* COLLAPSE */}
-        <div className="hidden border-t border-white/10 p-3 lg:block">
+        <div
+          className="
+            hidden
+            shrink-0
+            border-t
+            border-white/10
+            p-3
+            lg:block
+          "
+        >
           <button
             type="button"
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={() =>
+              setCollapsed(
+                (previous) => !previous
+              )
+            }
             className={`
-              flex w-full items-center rounded-xl
-              px-3 py-3
+              flex
+              h-11
+              w-full
+              items-center
+              rounded-xl
               text-white/60
               transition
-              hover:bg-white/10 hover:text-white
-              ${collapsed ? "justify-center" : "gap-3"}
+              hover:bg-white/10
+              hover:text-white
+
+              ${
+                collapsed
+                  ? "justify-center"
+                  : "gap-3 px-3"
+              }
             `}
           >
             {collapsed ? (
-              <ChevronRight size={20} />
+              <ChevronRight className="h-5 w-5" />
             ) : (
               <>
-                <ChevronLeft size={20} />
+                <ChevronLeft className="h-5 w-5" />
 
                 <span className="text-sm font-medium">
-                  Collapse menu
+                  Collapse Menu
                 </span>
               </>
             )}
@@ -344,11 +963,23 @@ export default function AdminSidebar({
         </div>
       </aside>
 
-      {/* DESKTOP SPACER */}
+      {/* =====================================================
+          DESKTOP SIDEBAR SPACER
+      ====================================================== */}
+
       <div
         className={`
-          hidden shrink-0 transition-all duration-300 lg:block
-          ${collapsed ? "w-[88px]" : "w-[270px]"}
+          hidden
+          shrink-0
+          transition-all
+          duration-300
+          lg:block
+
+          ${
+            collapsed
+              ? "w-[88px]"
+              : "w-[260px]"
+          }
         `}
       />
     </>

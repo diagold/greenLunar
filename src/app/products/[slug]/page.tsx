@@ -1,406 +1,1341 @@
-
+import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  Package,
+} from "lucide-react";
+
+import { createPublicClient } from "@/lib/supabase/public";
+import type { Product } from "@/types/product";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { products } from "@/data/products";
-import BackButton from "@/components/BackButton";
-import Link from "next/link";
-import { routes } from "@/config/routes";
 
-interface PageProps {
+
+/* -------------------------------------------------------------------------- */
+/* Revalidation                                                               */
+/* -------------------------------------------------------------------------- */
+
+export const revalidate = 60;
+
+
+/* -------------------------------------------------------------------------- */
+/* Page Props                                                                 */
+/* -------------------------------------------------------------------------- */
+
+type ProductPageProps = {
   params: Promise<{
     slug: string;
   }>;
-}
+};
 
-export default async function ProductPage({ params }: PageProps) {
+
+/* -------------------------------------------------------------------------- */
+/* Metadata                                                                   */
+/* -------------------------------------------------------------------------- */
+
+export async function generateMetadata({
+  params,
+}: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
 
-  const product = products[slug];
+  const supabase = createPublicClient();
+
+  const { data: product, error } = await supabase
+    .from("products")
+    .select(`
+      name,
+      slug,
+      short_description,
+      image_url,
+      seo_title,
+      seo_description,
+      seo_keywords,
+      seo_image_url
+    `)
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (error) {
+    console.error(
+      "Unable to load product metadata:",
+      error
+    );
+  }
 
   if (!product) {
+    return {
+      title: "Product | Green Lunar",
+      description:
+        "Explore Green Lunar technology solutions.",
+    };
+  }
+
+  const title =
+    product.seo_title?.trim() ||
+    `${product.name} | Green Lunar`;
+
+  const description =
+    product.seo_description?.trim() ||
+    product.short_description?.trim() ||
+    `Learn more about ${product.name} from Green Lunar Nigeria Limited.`;
+
+  const socialImage =
+    product.seo_image_url?.trim() ||
+    product.image_url?.trim() ||
+    undefined;
+
+  const keywords = product.seo_keywords
+    ? product.seo_keywords
+        .split(",")
+        .map((keyword: string) => keyword.trim())
+        .filter(Boolean)
+    : undefined;
+
+  return {
+    title,
+    description,
+    keywords,
+
+    openGraph: {
+      title,
+      description,
+      type: "website",
+
+      images: socialImage
+        ? [
+            {
+              url: socialImage,
+              alt: product.name,
+            },
+          ]
+        : undefined,
+    },
+
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+
+      images: socialImage
+        ? [socialImage]
+        : undefined,
+    },
+  };
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* Product Page                                                               */
+/* -------------------------------------------------------------------------- */
+
+export default async function ProductPage({
+  params,
+}: ProductPageProps) {
+  const { slug } = await params;
+
+  const supabase = createPublicClient();
+
+
+  /* ------------------------------------------------------------------------ */
+  /* Load Product                                                             */
+  /* ------------------------------------------------------------------------ */
+
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (error) {
+    console.error(
+      "Unable to load product:",
+      {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      }
+    );
+  }
+
+  if (!data) {
     notFound();
   }
 
+  const product = data as Product;
+
+
+  /* ------------------------------------------------------------------------ */
+  /* Clean Features                                                           */
+  /* ------------------------------------------------------------------------ */
+
+  const features = Array.isArray(product.features)
+    ? product.features.filter(
+        (feature) =>
+          feature &&
+          (
+            feature.title?.trim() ||
+            feature.description?.trim()
+          )
+      )
+    : [];
+
+
+  /* ------------------------------------------------------------------------ */
+  /* Clean Benefits                                                           */
+  /* ------------------------------------------------------------------------ */
+
+  const benefits = Array.isArray(product.benefits)
+    ? product.benefits.filter(
+        (benefit) =>
+          benefit &&
+          (
+            benefit.title?.trim() ||
+            benefit.description?.trim()
+          )
+      )
+    : [];
+
+
+  /* ------------------------------------------------------------------------ */
+  /* Clean Gallery                                                            */
+  /* ------------------------------------------------------------------------ */
+
+  const gallery = Array.isArray(product.gallery)
+    ? product.gallery.filter(
+        (image) =>
+          image &&
+          typeof image.url === "string" &&
+          image.url.trim()
+      )
+    : [];
+
+
+  /* ------------------------------------------------------------------------ */
+  /* Render                                                                   */
+  /* ------------------------------------------------------------------------ */
+
   return (
     <>
-      <Navbar />
+    <Navbar/>
+      <main className="min-h-screen bg-white">
 
-      <main className="bg-white">
+        {/* ================================================================== */}
+        {/* HERO                                                               */}
+        {/* ================================================================== */}
 
-       <div className="mx-auto max-w-7xl px-6 py-5 sm:px-8 lg:px-10">
-        <BackButton /> 
-      </div>
 
-        {/* =====================================================
-            HERO
-        ===================================================== */}
+        <section
+      className="
+        relative
+        min-h-[500px]
+        overflow-hidden
+        bg-[#073f30]
+        text-white
+        lg:min-h-[540px]
+      "
+    >
+      {/* ================================================================ */}
+      {/* BACKGROUND IMAGE                                                 */}
+      {/* ================================================================ */}
 
-        <section className="relative min-h-[500px] overflow-hidden bg-[#063d2b] sm:min-h-[540px] lg:min-h-[580px]">
-     
+      {product.image_url ? (
+        <img
+          src={product.image_url}
+          alt=""
+          aria-hidden="true"
+          className="
+            absolute
+            inset-0
+            h-full
+            w-full
+            object-cover
+            object-center
+          "
+        />
+      ) : (
+        <div
+          className="
+            absolute
+            inset-0
+            bg-[#073f30]
+          "
+        />
+      )}
 
-          <div className="absolute inset-0">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="h-full w-full object-cover"
-            />
-          </div>
 
-          <div className="absolute inset-0 bg-black/50" />
+      {/* ================================================================ */}
+      {/* DARK / GREEN OVERLAY                                             */}
+      {/* ================================================================ */}
 
-          <div className="absolute inset-0 bg-gradient-to-r from-[#063d2b]/95 via-[#063d2b]/65 to-transparent" />
+      <div
+        className="
+          absolute
+          inset-0
+          bg-gradient-to-r
+          from-[#032f24]/95
+          via-[#073f30]/80
+          to-black/25
+        "
+      />
 
-          <div className="relative mx-auto flex min-h-[500px] max-w-7xl items-end px-6 pb-14 sm:min-h-[540px] sm:px-8 sm:pb-16 lg:min-h-[580px] lg:px-10 lg:pb-20">
 
-            <div className="max-w-5xl">
+      {/* Extra bottom gradient for readability */}
 
-              <p className="text-sm font-medium uppercase tracking-[0.25em] text-green-400">
-                {product.category}
+      <div
+        className="
+          absolute
+          inset-0
+          bg-gradient-to-t
+          from-black/30
+          via-transparent
+          to-black/10
+        "
+      />
+
+
+      {/* ================================================================ */}
+      {/* CONTENT                                                          */}
+      {/* ================================================================ */}
+
+      <div
+        className="
+          relative
+          z-10
+          mx-auto
+          flex
+          min-h-[500px]
+          max-w-7xl
+          flex-col
+          px-6
+          pb-14
+          pt-28
+          lg:min-h-[540px]
+          lg:px-8
+          lg:pb-16
+          lg:pt-32
+        "
+      >
+        {/* Back to Products */}
+
+        <Link
+          href="/products"
+          className="
+            inline-flex
+            w-fit
+            items-center
+            gap-2
+            text-sm
+            font-medium
+            text-white/80
+            transition
+            hover:text-white
+          "
+        >
+          <ArrowLeft
+            size={17}
+          />
+
+          All Products
+        </Link>
+
+
+        {/* Main Hero Content */}
+
+        <div
+          className="
+            flex
+            flex-1
+            items-center
+          "
+        >
+          <div
+            className="
+              max-w-3xl
+              py-8
+              lg:max-w-2xl
+            "
+          >
+            {/* Category */}
+
+            {product.category && (
+              <div
+                className="
+                  mb-5
+                  flex
+                  items-center
+                  gap-3
+                "
+              >
+                <span
+                  className="
+                    text-xs
+                    font-semibold
+                    uppercase
+                    tracking-[0.22em]
+                    text-green-200
+                    sm:text-sm
+                  "
+                >
+                  {product.category}
+                </span>
+
+                <span
+                  className="
+                    h-px
+                    w-12
+                    bg-green-200/60
+                  "
+                />
+              </div>
+            )}
+
+
+            {/* Product Name */}
+
+            <h1
+              className="
+                max-w-3xl
+                text-4xl
+                font-bold
+                leading-[1.05]
+                tracking-tight
+                text-white
+                sm:text-5xl
+                lg:text-6xl
+              "
+            >
+              {product.name}
+            </h1>
+
+
+            {/* Short Description */}
+
+            {product.short_description && (
+              <p
+                className="
+                  mt-5
+                  max-w-2xl
+                  text-base
+                  leading-7
+                  text-white/85
+                  sm:text-lg
+                  sm:leading-8
+                "
+              >
+                {product.short_description}
               </p>
+            )}
 
-              <h1 className="mt-6 text-6xl font-medium leading-[0.95] tracking-tight text-white sm:text-7xl lg:text-9xl">
-                {product.name}
-              </h1>
 
-              <p className="mt-8 max-w-3xl text-lg leading-8 text-white/75 sm:text-xl">
-                {product.tagline}
-              </p>
+            {/* Buttons */}
 
+            <div
+              className="
+                mt-8
+                flex
+                flex-wrap
+                gap-3
+              "
+            >
               <Link
-                href={routes.contact}
-                className="mt-9 inline-flex items-center rounded-md bg-green-600 px-7 py-4 text-sm font-medium text-white shadow-[0_10px_30px_rgba(22,163,74,0.25)] transition-all duration-300 hover:bg-green-500 hover:shadow-[0_15px_40px_rgba(22,163,74,0.35)]"
+                href="/contact"
+                className="
+                  inline-flex
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-lg
+                  bg-white
+                  px-6
+                  py-3.5
+                  text-sm
+                  font-semibold
+                  text-[#073f30]
+                  shadow-lg
+                  shadow-black/10
+                  transition
+                  hover:bg-green-50
+                "
               >
                 Request a Demo
 
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  className="ml-2 h-4 w-4"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 12h14M13 6l6 6-6 6"
-                  />
-                </svg>
+                <ArrowRight
+                  size={17}
+                />
               </Link>
 
+
+              <Link
+                href="#overview"
+                className="
+                  inline-flex
+                  items-center
+                  justify-center
+                  rounded-lg
+                  border
+                  border-white/50
+                  bg-white/5
+                  px-6
+                  py-3.5
+                  text-sm
+                  font-semibold
+                  text-white
+                  backdrop-blur-sm
+                  transition
+                  hover:border-white
+                  hover:bg-white/10
+                    "
+                  >
+                    Learn More
+                  </Link>
+                </div>
+              </div>
             </div>
-
           </div>
-
         </section>
 
 
-        {/* =====================================================
-            INTRODUCTION
-        ===================================================== */}
+        {/* ================================================================== */}
+        {/* OVERVIEW + CONTENT + SIDEBAR                                       */}
+        {/* ================================================================== */}
 
-        <section className="px-6 py-24 sm:px-8 lg:px-10 lg:py-32">
+        <section
+          id="overview"
+          className="
+            scroll-mt-28
+            px-6
+            py-20
+          "
+        >
 
-          <div className="mx-auto max-w-7xl">
+          <div
+            className="
+              mx-auto
+              grid
+              max-w-7xl
+              gap-12
+              lg:grid-cols-[minmax(0,1fr)_320px]
+            "
+          >
 
-            <div className="grid grid-cols-1 gap-12 lg:grid-cols-[0.7fr_1.3fr] lg:gap-24">
+            {/* ============================================================ */}
+            {/* MAIN COLUMN                                                  */}
+            {/* ============================================================ */}
 
-              <div>
+            <div className="min-w-0">
 
-                <p className="text-sm font-medium uppercase tracking-[0.25em] text-green-600">
-                  About {product.name}
+
+              {/* ---------------------------------------------------------- */}
+              {/* OVERVIEW                                                   */}
+              {/* ---------------------------------------------------------- */}
+
+              <section>
+
+                <p
+                  className="
+                    text-sm
+                    font-semibold
+                    uppercase
+                    tracking-wider
+                    text-[#073f30]
+                  "
+                >
+                  About the Product
                 </p>
 
-                <h2 className="mt-5 text-4xl font-medium leading-tight tracking-tight text-gray-900 sm:text-5xl">
-                  Technology designed
-                  <span className="block text-green-600">
-                    for real-world needs.
-                  </span>
+
+                <h2
+                  className="
+                    mt-3
+                    text-3xl
+                    font-bold
+                    text-gray-900
+                    sm:text-4xl
+                  "
+                >
+                  Built for better operations
                 </h2>
 
-              </div>
-
-              <div>
-
-                <p className="text-lg leading-9 text-gray-600">
-                  {product.description}
-                </p>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </section>
-
-
-        {/* =====================================================
-            FEATURES
-        ===================================================== */}
-
-        <section className="bg-[#f7faf8] px-6 py-24 sm:px-8 lg:px-10 lg:py-32">
-
-          <div className="mx-auto max-w-7xl">
-
-            <div className="max-w-3xl">
-
-              <p className="text-sm font-medium uppercase tracking-[0.25em] text-green-600">
-                Key Capabilities
-              </p>
-
-              <h2 className="mt-5 text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl">
-                Everything you need to
-                <span className="text-green-600">
-                  {" "}work smarter.
-                </span>
-              </h2>
-
-            </div>
-
-
-            <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-2">
-
-              {product.features.map((feature, index) => (
 
                 <div
-                  key={feature.title}
-                  className="group rounded-xl bg-white p-8 shadow-[0_12px_35px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(0,0,0,0.09)]"
+                  className="
+                    mt-7
+                    whitespace-pre-line
+                    text-base
+                    leading-8
+                    text-gray-600
+                  "
                 >
+                  {product.description ||
+                    product.short_description ||
+                    "Additional product information will be available soon."}
+                </div>
 
-                  <div className="flex items-start justify-between">
+              </section>
 
-                    <span className="text-sm font-medium text-green-600">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
 
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      className="h-5 w-5 text-green-600 transition-transform duration-300 group-hover:translate-x-1"
+              {/* ---------------------------------------------------------- */}
+              {/* FEATURES                                                   */}
+              {/* ---------------------------------------------------------- */}
+
+              {features.length > 0 && (
+                <section className="mt-20">
+
+                  <div className="max-w-2xl">
+
+                    <p
+                      className="
+                        text-sm
+                        font-semibold
+                        uppercase
+                        tracking-wider
+                        text-[#073f30]
+                      "
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 12h14M13 6l6 6-6 6"
-                      />
-                    </svg>
+                      Key Features
+                    </p>
+
+
+                    <h2
+                      className="
+                        mt-3
+                        text-3xl
+                        font-bold
+                        text-gray-900
+                      "
+                    >
+                      Powerful capabilities built in
+                    </h2>
+
+
+                    <p
+                      className="
+                        mt-4
+                        text-base
+                        leading-7
+                        text-gray-500
+                      "
+                    >
+                      Explore the core capabilities
+                      designed to support efficient
+                      operations and better service
+                      delivery.
+                    </p>
 
                   </div>
 
-                  <h3 className="mt-8 text-2xl font-medium text-gray-900">
-                    {feature.title}
-                  </h3>
+                <div
+                  className="
+                    mt-10
+                    grid
+                    justify-center
+                    gap-5
+                    sm:grid-cols-2
+                    lg:grid-cols-3
+                  "
+                >
+                  {features.map((feature, index) => (
+                    <div
+                      key={index}
+                      className="
+                        group
+                        mx-auto
+                        flex
+                        w-full
+                        max-w-[340px]
+                        flex-col
+                        items-center
+                        justify-center
+                        rounded-xl
+                        border
+                        border-gray-200
+                        bg-white
+                        px-5
+                        py-5
+                        text-center
+                        shadow-sm
+                        transition-all
+                        duration-300
+                        hover:-translate-y-1
+                        hover:border-green-200
+                        hover:shadow-md
+                      "
+                    >
+                      <div
+                        className="
+                          mb-3
+                          flex
+                          h-10
+                          w-10
+                          items-center
+                          justify-center
+                          rounded-full
+                          bg-green-50
+                          text-[#073f30]
+                          transition
+                          duration-300
+                          group-hover:bg-[#073f30]
+                          group-hover:text-white
+                        "
+                      >
+                        <CheckCircle2 size={20} />
+                      </div>
 
-                  <p className="mt-4 text-sm leading-7 text-gray-600">
-                    {feature.description}
-                  </p>
+                      <h3 className="text-base font-semibold text-gray-900">
+                        {feature.title}
+                      </h3>
 
+                      {feature.description && (
+                        <p className="mt-2 text-sm leading-6 text-gray-500">
+                          {feature.description}
+                        </p>
+                      )}
+                    </div>
+                  ))}
                 </div>
 
-              ))}
+                </section>
+              )}
+
+
+              {/* ---------------------------------------------------------- */}
+              {/* BENEFITS                                                   */}
+              {/* ---------------------------------------------------------- */}
+
+              {benefits.length > 0 && (
+                <section
+                  className="
+                    mt-20
+                    overflow-hidden
+                    rounded-3xl
+                    bg-[#073f30]
+                    p-8
+                    text-white
+                    sm:p-10
+                  "
+                >
+
+                  <div className="max-w-2xl">
+
+                    <p
+                      className="
+                        text-sm
+                        font-semibold
+                        uppercase
+                        tracking-wider
+                        text-green-300
+                      "
+                    >
+                      Benefits
+                    </p>
+
+
+                    <h2
+                      className="
+                        mt-3
+                        text-3xl
+                        font-bold
+                      "
+                    >
+                      Why organisations choose this solution
+                    </h2>
+
+
+                    <p
+                      className="
+                        mt-4
+                        text-sm
+                        leading-7
+                        text-green-50/70
+                      "
+                    >
+                      Designed to deliver measurable
+                      improvements across operations,
+                      efficiency and service delivery.
+                    </p>
+
+                  </div>
+
+
+                  <div
+                    className="
+                      mt-10
+                      grid
+                      gap-5
+                      sm:grid-cols-2
+                    "
+                  >
+
+                    {benefits.map(
+                      (benefit, index) => (
+                        <article
+                          key={`${benefit.title}-${index}`}
+                          className="
+                            rounded-2xl
+                            border
+                            border-white/10
+                            bg-white/5
+                            p-5
+                          "
+                        >
+
+                          <div
+                            className="
+                              flex
+                              items-start
+                              gap-4
+                            "
+                          >
+
+                            <div
+                              className="
+                                flex
+                                h-9
+                                w-9
+                                shrink-0
+                                items-center
+                                justify-center
+                                rounded-full
+                                bg-green-300
+                                text-[#073f30]
+                              "
+                            >
+                              <Check size={17} />
+                            </div>
+
+
+                            <div>
+
+                              {benefit.title && (
+                                <h3
+                                  className="
+                                    font-bold
+                                    text-white
+                                  "
+                                >
+                                  {benefit.title}
+                                </h3>
+                              )}
+
+
+                              {benefit.description && (
+                                <p
+                                  className="
+                                    mt-2
+                                    text-sm
+                                    leading-6
+                                    text-green-50/70
+                                  "
+                                >
+                                  {benefit.description}
+                                </p>
+                              )}
+
+                            </div>
+
+                          </div>
+
+                        </article>
+                      )
+                    )}
+
+                  </div>
+
+                </section>
+              )}
+
+
+              {/* ---------------------------------------------------------- */}
+              {/* PRODUCT GALLERY                                            */}
+              {/* ---------------------------------------------------------- */}
+
+              {gallery.length > 0 && (
+                <section className="mt-20">
+
+                  <div className="max-w-2xl">
+
+                    <p
+                      className="
+                        text-sm
+                        font-semibold
+                        uppercase
+                        tracking-wider
+                        text-[#073f30]
+                      "
+                    >
+                      Product Gallery
+                    </p>
+
+
+                    <h2
+                      className="
+                        mt-3
+                        text-3xl
+                        font-bold
+                        text-gray-900
+                      "
+                    >
+                      See the solution in action
+                    </h2>
+
+
+                    <p
+                      className="
+                        mt-4
+                        text-base
+                        leading-7
+                        text-gray-500
+                      "
+                    >
+                      Explore screenshots and visual
+                      highlights from {product.name}.
+                    </p>
+
+                  </div>
+
+
+                  <div
+                    className="
+                      mt-8
+                      grid
+                      gap-5
+                      sm:grid-cols-2
+                    "
+                  >
+
+                    {gallery.map(
+                      (image, index) => (
+                        <figure
+                          key={`${image.url}-${index}`}
+                          className="
+                            group
+                            overflow-hidden
+                            rounded-2xl
+                            border
+                            border-gray-200
+                            bg-gray-50
+                            shadow-sm
+                          "
+                        >
+
+                          <div className="overflow-hidden">
+
+                            <img
+                              src={image.url}
+                              alt={
+                                image.alt ||
+                                `${product.name} screenshot ${index + 1}`
+                              }
+                              className="
+                                aspect-video
+                                w-full
+                                object-cover
+                                transition-transform
+                                duration-500
+                                group-hover:scale-[1.03]
+                              "
+                            />
+
+                          </div>
+
+
+                          {image.alt && (
+                            <figcaption
+                              className="
+                                border-t
+                                border-gray-100
+                                bg-white
+                                px-4
+                                py-3
+                                text-sm
+                                text-gray-500
+                              "
+                            >
+                              {image.alt}
+                            </figcaption>
+                          )}
+
+                        </figure>
+                      )
+                    )}
+
+                  </div>
+
+                </section>
+              )}
 
             </div>
 
-          </div>
 
-        </section>
+            {/* ============================================================ */}
+            {/* SIDEBAR                                                      */}
+            {/* ============================================================ */}
 
+            <aside>
 
-        {/* =====================================================
-            HOW IT WORKS
-        ===================================================== */}
+              <div
+                className="
+                  sticky
+                  top-28
+                  rounded-2xl
+                  border
+                  border-gray-100
+                  bg-gray-50
+                  p-6
+                "
+              >
 
-        <section className="px-6 py-24 sm:px-8 lg:px-10 lg:py-32">
-
-          <div className="mx-auto max-w-7xl">
-
-            <div className="grid grid-cols-1 gap-14 lg:grid-cols-[0.65fr_1.35fr] lg:gap-24">
-
-              <div>
-
-                <p className="text-sm font-medium uppercase tracking-[0.25em] text-green-600">
-                  How It Works
+                <p
+                  className="
+                    text-sm
+                    font-semibold
+                    text-gray-500
+                  "
+                >
+                  Interested in this solution?
                 </p>
 
-                <h2 className="mt-5 text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl">
-                  From process
-                  <span className="block text-green-600">
-                    to possibility.
-                  </span>
-                </h2>
 
-              </div>
+                <h3
+                  className="
+                    mt-2
+                    text-xl
+                    font-bold
+                    text-gray-900
+                  "
+                >
+                  Talk to Green Lunar
+                </h3>
 
 
-              <div className="divide-y divide-gray-200">
+                <p
+                  className="
+                    mt-3
+                    text-sm
+                    leading-6
+                    text-gray-500
+                  "
+                >
+                  Speak with our team about
+                  demonstrations, implementation,
+                  integration and deployment
+                  requirements.
+                </p>
 
-                {product.workflow.map((step) => (
 
-                  <div
-                    key={step.number}
-                    className="grid grid-cols-[70px_1fr] gap-5 py-7"
-                  >
+                <Link
+                  href="/contact"
+                  className="
+                    mt-6
+                    flex
+                    w-full
+                    items-center
+                    justify-center
+                    gap-2
+                    rounded-xl
+                    bg-[#073f30]
+                    px-4
+                    py-3
+                    text-sm
+                    font-semibold
+                    text-white
+                    transition
+                    hover:bg-[#09543f]
+                  "
+                >
+                  Request a Demo
 
-                    <span className="text-sm font-medium text-green-600">
-                      {step.number}
-                    </span>
+                  <ArrowRight size={16} />
+                </Link>
 
+
+                <div
+                  className="
+                    my-6
+                    border-t
+                    border-gray-200
+                  "
+                />
+
+
+                <div className="space-y-5">
+
+                  {product.category && (
                     <div>
 
-                      <h3 className="text-xl font-medium text-gray-900">
-                        {step.title}
-                      </h3>
-
-                      <p className="mt-2 max-w-xl text-sm leading-7 text-gray-600">
-                        {step.description}
+                      <p
+                        className="
+                          text-xs
+                          font-semibold
+                          uppercase
+                          tracking-wider
+                          text-gray-400
+                        "
+                      >
+                        Category
                       </p>
 
+                      <p
+                        className="
+                          mt-1
+                          text-sm
+                          font-semibold
+                          text-gray-700
+                        "
+                      >
+                        {product.category}
+                      </p>
+
+                    </div>
+                  )}
+
+
+                  <div>
+
+                    <p
+                      className="
+                        text-xs
+                        font-semibold
+                        uppercase
+                        tracking-wider
+                        text-gray-400
+                      "
+                    >
+                      Product
+                    </p>
+
+                    <p
+                      className="
+                        mt-1
+                        text-sm
+                        font-semibold
+                        text-gray-700
+                      "
+                    >
+                      {product.name}
+                    </p>
+
+                  </div>
+
+
+                  <div>
+
+                    <p
+                      className="
+                        text-xs
+                        font-semibold
+                        uppercase
+                        tracking-wider
+                        text-gray-400
+                      "
+                    >
+                      Provider
+                    </p>
+
+                    <p
+                      className="
+                        mt-1
+                        text-sm
+                        font-semibold
+                        text-gray-700
+                      "
+                    >
+                      Green Lunar Nigeria Limited
+                    </p>
+
+                  </div>
+
+
+                  <div>
+
+                    <p
+                      className="
+                        text-xs
+                        font-semibold
+                        uppercase
+                        tracking-wider
+                        text-gray-400
+                      "
+                    >
+                      Availability
+                    </p>
+
+                    <div
+                      className="
+                        mt-2
+                        inline-flex
+                        items-center
+                        gap-2
+                        rounded-full
+                        bg-green-100
+                        px-3
+                        py-1.5
+                        text-xs
+                        font-semibold
+                        text-green-800
+                      "
+                    >
+                      <span
+                        className="
+                          h-2
+                          w-2
+                          rounded-full
+                          bg-green-600
+                        "
+                      />
+
+                      Available
                     </div>
 
                   </div>
 
-                ))}
+                </div>
 
               </div>
 
-            </div>
+            </aside>
 
           </div>
 
         </section>
 
 
-        {/* =====================================================
-            WHO IT IS FOR
-        ===================================================== */}
+        {/* ================================================================== */}
+        {/* FINAL REQUEST DEMO CTA                                             */}
+        {/* ================================================================== */}
 
-        <section className="bg-[#063d2b] px-6 py-24 sm:px-8 lg:px-10 lg:py-32">
+        <section
+          className="
+            px-6
+            pb-20
+          "
+        >
 
-          <div className="mx-auto max-w-7xl">
+          <div
+            className="
+              relative
+              mx-auto
+              max-w-7xl
+              overflow-hidden
+              rounded-3xl
+              bg-[#073f30]
+              px-6
+              py-12
+              text-white
+              sm:px-10
+              lg:flex
+              lg:items-center
+              lg:justify-between
+              lg:px-14
+              lg:py-14
+            "
+          >
 
-            <div className="max-w-3xl">
+            {/* CTA decoration */}
 
-              <p className="text-sm font-medium uppercase tracking-[0.25em] text-green-400">
-                Who It&apos;s For
+            <div
+              className="
+                pointer-events-none
+                absolute
+                -right-24
+                -top-24
+                h-72
+                w-72
+                rounded-full
+                bg-green-300/10
+                blur-3xl
+              "
+            />
+
+
+            <div
+              className="
+                relative
+                max-w-2xl
+              "
+            >
+
+              <p
+                className="
+                  text-sm
+                  font-semibold
+                  uppercase
+                  tracking-wider
+                  text-green-300
+                "
+              >
+                Get Started
               </p>
 
-              <h2 className="mt-5 text-4xl font-medium tracking-tight text-white sm:text-5xl lg:text-6xl">
-                Built for organizations
-                <span className="block text-green-400">
-                  that want to move forward.
-                </span>
+
+              <h2
+                className="
+                  mt-3
+                  text-3xl
+                  font-bold
+                  sm:text-4xl
+                "
+              >
+                Ready to explore {product.name}?
               </h2>
 
-            </div>
 
-
-            <div className="mt-14 grid grid-cols-1 gap-x-8 gap-y-0 md:grid-cols-2 lg:grid-cols-3">
-
-              {product.users.map((user, index) => (
-
-                <div
-                  key={user}
-                  className="border-t border-white/10 py-6"
-                >
-
-                  <div className="flex items-center gap-5">
-
-                    <span className="text-sm text-green-400">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-
-                    <span className="text-base font-medium text-white">
-                      {user}
-                    </span>
-
-                  </div>
-
-                </div>
-
-              ))}
-
-            </div>
-
-          </div>
-
-        </section>
-
-
-        {/* =====================================================
-            PRODUCT VISUAL
-        ===================================================== */}
-
-        <section className="px-6 py-24 sm:px-8 lg:px-10 lg:py-32">
-
-          <div className="mx-auto max-w-7xl">
-
-            <div className="overflow-hidden rounded-xl bg-[#f7faf8]">
-
-              <img
-                src={product.image}
-                alt={`${product.name} product`}
-                className="h-[420px] w-full object-cover transition-transform duration-700 hover:scale-105 sm:h-[550px] lg:h-[650px]"
-              />
-
-            </div>
-
-          </div>
-
-        </section>
-
-
-        {/* =====================================================
-            CTA
-        ===================================================== */}
-
-        <section className="px-6 pb-24 sm:px-8 lg:px-10 lg:pb-32">
-
-          <div className="mx-auto max-w-7xl">
-
-            <div className="rounded-xl bg-[#f7faf8] px-8 py-16 text-center sm:px-12 lg:px-20 lg:py-24">
-
-              <p className="text-sm font-medium uppercase tracking-[0.25em] text-green-600">
-                GreenLunar Technology
+              <p
+                className="
+                  mt-4
+                  text-base
+                  leading-7
+                  text-green-50/75
+                "
+              >
+                Contact our team to discuss your
+                requirements and learn how{" "}
+                {product.name} can be deployed
+                within your organisation.
               </p>
 
-              <h2 className="mx-auto mt-5 max-w-4xl text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-                Ready to transform
-                <span className="text-green-600">
-                  {" "}{product.name}?
-                </span>
-              </h2>
+            </div>
 
-              <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-gray-600">
-                Talk to our team about how {product.name} can support
-                your organization and help you work more efficiently.
-              </p>
+
+            <div
+              className="
+                relative
+                mt-8
+                shrink-0
+                lg:ml-10
+                lg:mt-0
+              "
+            >
 
               <Link
-                href={routes.contact}
-                className="mt-10 inline-flex items-center rounded-md bg-green-600 px-8 py-4 text-sm font-medium text-white shadow-[0_10px_30px_rgba(22,163,74,0.25)] transition-all duration-300 hover:bg-green-500 hover:shadow-[0_15px_40px_rgba(22,163,74,0.35)]"
+                href="/contact"
+                className="
+                  inline-flex
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-xl
+                  bg-white
+                  px-6
+                  py-3.5
+                  text-sm
+                  font-bold
+                  text-[#073f30]
+                  transition
+                  hover:bg-green-50
+                "
               >
                 Request a Demo
 
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  className="ml-2 h-4 w-4"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 12h14M13 6l6 6-6 6"
-                  />
-                </svg>
-
+                <ArrowRight size={17} />
               </Link>
 
             </div>
@@ -410,8 +1345,7 @@ export default async function ProductPage({ params }: PageProps) {
         </section>
 
       </main>
-
-      <Footer />
+    <Footer/>
     </>
   );
 }

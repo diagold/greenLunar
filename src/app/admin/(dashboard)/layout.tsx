@@ -67,7 +67,6 @@ export default async function AdminLayout({
     <AdminShell
       userName={userName}
       role={role}
-      stats={stats}
     >
       {children}
     </AdminShell>
