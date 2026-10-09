@@ -5,6 +5,8 @@ export const routes = {
 
   contact: "/contact",
 
+  news: "/news",
+
   services: {
     all: "/services",
     technology: "/services/technology",

@@ -3,86 +3,137 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
+
 import { routes } from "@/config/routes";
 
-const heroSlides = [
+/* =========================================================
+   TYPES
+========================================================= */
+
+export type HomepageHeroSlide = {
+  id: string;
+  eyebrow: string | null;
+  title: string;
+  highlight: string | null;
+  ending: string | null;
+  description: string | null;
+  image_url: string | null;
+  sort_order: number;
+  is_active: boolean;
+};
+
+type HeroProps = {
+  slides: HomepageHeroSlide[];
+};
+
+/* =========================================================
+   FALLBACK
+
+   Used only if no active CMS slides can be loaded.
+========================================================= */
+
+const fallbackSlides: HomepageHeroSlide[] = [
   {
-    image: "https://res.cloudinary.com/diobpauw/image/upload/v1788927761/pexels-anthonyshkraba-production-8837544.jpg",
+    id: "fallback-hero",
+    image_url:
+      "https://res.cloudinary.com/diobpauw/image/upload/v1788927761/pexels-anthonyshkraba-production-8837544.jpg",
     eyebrow: "DIGITAL TRANSFORMATION",
     title: "Building Technology that",
     highlight: "moves business",
     ending: "forward.",
     description:
       "Digital solutions designed to simplify operations, improve efficiency, and accelerate growth.",
-  },
-  {
-    image: "https://res.cloudinary.com/diobpauw/image/upload/v1788927709/carlos-muza-hpjSkU2UYSU-unsplash.jpg",
-    eyebrow: "SMART TECHNOLOGY",
-    title: "Digital Solutions that",
-    highlight: "simplify work",
-    ending: "and accelerate growth.",
-    description:
-      "Powerful technology that connects people, processes, and information in one intelligent ecosystem.",
-  },
-  {
-    image: "https://res.cloudinary.com/diobpauw/image/upload/v1789023177/hero-business.jpg",
-    eyebrow: "INNOVATION",
-    title: "Technology built for",
-    highlight: "the future",
-    ending: "of business.",
-    description:
-      "We build practical digital systems that help organizations operate smarter and move faster.",
+    sort_order: 1,
+    is_active: true,
   },
 ];
 
-export default function Hero() {
+/* =========================================================
+   HERO
+========================================================= */
+
+export default function Hero({ slides }: HeroProps) {
+  const heroSlides =
+    slides && slides.length > 0 ? slides : fallbackSlides;
+
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  const slide = heroSlides[currentSlide];
-
+  /*
+   * Protect against the current index becoming invalid
+   * if slides are changed through the CMS.
+   */
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((previous) => (previous + 1) % heroSlides.length);
+    if (currentSlide >= heroSlides.length) {
+      setCurrentSlide(0);
+    }
+  }, [currentSlide, heroSlides.length]);
+
+  /*
+   * Rotate only when there is more than one slide.
+   */
+  useEffect(() => {
+    if (heroSlides.length <= 1) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setCurrentSlide((previous) => {
+        return (previous + 1) % heroSlides.length;
+      });
     }, 6000);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [heroSlides.length]);
+
+  const slide = heroSlides[currentSlide] ?? heroSlides[0];
 
   return (
-    <section className="
-          relative
-          min-h-[650px]
-          sm:min-h-[700px]
-          lg:min-h-[800px]
-          xl:min-h-[100vh]
-          overflow-hidden
-          "
+    <section
+      className="
+        relative
+        min-h-[650px]
+        overflow-hidden
+        sm:min-h-[700px]
+        lg:min-h-[800px]
+        xl:min-h-[100vh]
+      "
     >
       {/* =====================================================
           BACKGROUND IMAGE
       ====================================================== */}
+
       <AnimatePresence mode="sync">
         <motion.div
-          key={currentSlide}
+          key={slide.id}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 1.2 }}
-          className="absolute inset-0 absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage: `url(${heroSlides[currentSlide].image})`,
-            }}
+          className="absolute inset-0"
         >
-          <img
-            src={slide.image}
-            alt=""
-            className="h-full w-full object-cover object-center"
-          />
+          {slide.image_url ? (
+            <img
+              src={slide.image_url}
+              alt={slide.title || "Green Lunar"}
+              className="
+                h-full
+                w-full
+                object-cover
+                object-center
+              "
+            />
+          ) : (
+            <div className="h-full w-full bg-[#073f30]" />
+          )}
 
           {/* Dark overlay */}
+
           <div className="absolute inset-0 bg-black/55" />
 
           {/* Gradient overlay */}
+
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/20" />
         </motion.div>
       </AnimatePresence>
@@ -90,6 +141,7 @@ export default function Hero() {
       {/* =====================================================
           HERO CONTENT
       ====================================================== */}
+
       <div
         className="
           relative
@@ -102,18 +154,18 @@ export default function Hero() {
           items-center
           px-5
           py-20
+          pt-48
           sm:px-8
           sm:py-24
+          sm:pt-56
           lg:px-8
           lg:py-28
-          pt-48
-          sm:pt-56
           lg:pt-64
         "
       >
         <AnimatePresence mode="wait">
           <motion.div
-            key={currentSlide}
+            key={slide.id}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -123,30 +175,40 @@ export default function Hero() {
             {/* =================================================
                 EYEBROW
             ================================================== */}
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.6,
-                delay: 0.1,
-              }}
-              className="
-                mb-5
-                text-xs
-                font-medium
-                tracking-[0.2em]
-                text-green-400
-                sm:mb-6
-                sm:text-sm
-                sm:tracking-[0.25em]
-              "
-            >
-              {slide.eyebrow}
-            </motion.p>
+
+            {slide.eyebrow && (
+              <motion.p
+                initial={{
+                  opacity: 0,
+                  y: 20,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                transition={{
+                  duration: 0.6,
+                  delay: 0.1,
+                }}
+                className="
+                  mb-5
+                  text-xs
+                  font-medium
+                  tracking-[0.2em]
+                  text-green-400
+                  sm:mb-6
+                  sm:text-sm
+                  sm:tracking-[0.25em]
+                "
+              >
+                {slide.eyebrow}
+              </motion.p>
+            )}
 
             {/* =================================================
                 ANIMATED HEADING
             ================================================== */}
+
             <motion.h1
               initial="hidden"
               animate="visible"
@@ -164,17 +226,15 @@ export default function Hero() {
                 leading-[1.05]
                 tracking-tight
                 text-white
-
                 sm:text-5xl
                 sm:leading-[1.03]
-
                 md:text-6xl
-
                 lg:text-7xl
                 lg:leading-[1.02]
               "
             >
               {/* TITLE */}
+
               <motion.span
                 className="block"
                 variants={{
@@ -182,9 +242,11 @@ export default function Hero() {
                     opacity: 0,
                     y: 30,
                   },
+
                   visible: {
                     opacity: 1,
                     y: 0,
+
                     transition: {
                       duration: 0.8,
                       ease: "easeOut",
@@ -196,79 +258,104 @@ export default function Hero() {
               </motion.span>
 
               {/* HIGHLIGHT */}
-              <motion.span
-                className="block text-green-400"
-                variants={{
-                  hidden: {
-                    opacity: 0,
-                    y: 30,
-                  },
-                  visible: {
-                    opacity: 1,
-                    y: 0,
-                    transition: {
-                      duration: 0.8,
-                      ease: "easeOut",
+
+              {slide.highlight && (
+                <motion.span
+                  className="block text-green-400"
+                  variants={{
+                    hidden: {
+                      opacity: 0,
+                      y: 30,
                     },
-                  },
-                }}
-              >
-                {slide.highlight}
-              </motion.span>
+
+                    visible: {
+                      opacity: 1,
+                      y: 0,
+
+                      transition: {
+                        duration: 0.8,
+                        ease: "easeOut",
+                      },
+                    },
+                  }}
+                >
+                  {slide.highlight}
+                </motion.span>
+              )}
 
               {/* ENDING */}
-              <motion.span
-                className="block"
-                variants={{
-                  hidden: {
-                    opacity: 0,
-                    y: 30,
-                  },
-                  visible: {
-                    opacity: 1,
-                    y: 0,
-                    transition: {
-                      duration: 0.8,
-                      ease: "easeOut",
+
+              {slide.ending && (
+                <motion.span
+                  className="block"
+                  variants={{
+                    hidden: {
+                      opacity: 0,
+                      y: 30,
                     },
-                  },
-                }}
-              >
-                {slide.ending}
-              </motion.span>
+
+                    visible: {
+                      opacity: 1,
+                      y: 0,
+
+                      transition: {
+                        duration: 0.8,
+                        ease: "easeOut",
+                      },
+                    },
+                  }}
+                >
+                  {slide.ending}
+                </motion.span>
+              )}
             </motion.h1>
 
             {/* =================================================
                 DESCRIPTION
             ================================================== */}
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.7,
-                delay: 0.65,
-              }}
-              className="
-                mt-6
-                max-w-xl
-                text-base
-                leading-7
-                text-white/80
 
-                sm:mt-8
-                sm:text-lg
-                sm:leading-8
-              "
-            >
-              {slide.description}
-            </motion.p>
+            {slide.description && (
+              <motion.p
+                initial={{
+                  opacity: 0,
+                  y: 20,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                transition={{
+                  duration: 0.7,
+                  delay: 0.65,
+                }}
+                className="
+                  mt-6
+                  max-w-xl
+                  text-base
+                  leading-7
+                  text-white/80
+                  sm:mt-8
+                  sm:text-lg
+                  sm:leading-8
+                "
+              >
+                {slide.description}
+              </motion.p>
+            )}
 
             {/* =================================================
                 BUTTONS
             ================================================== */}
+
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{
+                opacity: 0,
+                y: 20,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
               transition={{
                 duration: 0.7,
                 delay: 0.8,
@@ -284,8 +371,9 @@ export default function Hero() {
                 sm:gap-4
               "
             >
-            <Link href={routes.services.technology}
-            className="
+              <Link
+                href={routes.services.technology}
+                className="
                   w-full
                   rounded-md
                   bg-green-500
@@ -298,34 +386,33 @@ export default function Hero() {
                   duration-300
                   hover:bg-green-600
                   sm:w-auto
-            ">
-            
-              Explore Solutions
-           
-            </Link>
+                "
+              >
+                Explore Solutions
+              </Link>
 
-
-            <Link href={routes.contact}
-            className="
-                w-full
-                rounded-md
-                border
-                border-white/40
-                bg-white/10
-                px-9
-                py-4
-                text-sm
-                font-medium
-                text-white
-                backdrop-blur-sm
-                transition
-                duration-300
-                hover:bg-white/20
-                sm:w-auto
-            "
-            >
-            Request a Demo
-            </Link>
+              <Link
+                href={routes.contact}
+                className="
+                  w-full
+                  rounded-md
+                  border
+                  border-white/40
+                  bg-white/10
+                  px-9
+                  py-4
+                  text-sm
+                  font-medium
+                  text-white
+                  backdrop-blur-sm
+                  transition
+                  duration-300
+                  hover:bg-white/20
+                  sm:w-auto
+                "
+              >
+                Request a Demo
+              </Link>
             </motion.div>
           </motion.div>
         </AnimatePresence>
@@ -333,59 +420,46 @@ export default function Hero() {
 
       {/* =====================================================
           SLIDE INDICATORS
+
+          Only display indicators when there is more than
+          one active slide.
       ====================================================== */}
-      <div
-        className="
-          absolute
-          bottom-6
-          left-1/2
-          z-20
-          flex
-          -translate-x-1/2
-          gap-2
 
-          sm:bottom-8
-        "
-      >
-        {heroSlides.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => setCurrentSlide(index)}
-            aria-label={`Go to slide ${index + 1}`}
-            className={`
-              h-2
-              rounded-full
-              transition-all
-              duration-300
+      {heroSlides.length > 1 && (
+        <div
+          className="
+            absolute
+            bottom-6
+            left-1/2
+            z-20
+            flex
+            -translate-x-1/2
+            gap-2
+            sm:bottom-8
+          "
+        >
+          {heroSlides.map((heroSlide, index) => (
+            <button
+              key={heroSlide.id}
+              type="button"
+              onClick={() => setCurrentSlide(index)}
+              aria-label={`Go to slide ${index + 1}`}
+              className={`
+                h-2
+                rounded-full
+                transition-all
+                duration-300
 
-              ${
-                index === currentSlide
-                  ? "w-8 bg-green-400 sm:w-10"
-                  : "w-2 bg-white/50 hover:bg-white/80"
-              }
-            `}
-          />
-        ))}
-      </div>
-
-      {/* =====================================================
-          SLIDE NUMBER
-      ====================================================== */}
-      {/* <div
-        className="
-          absolute
-          bottom-8
-          right-8
-          z-20
-          hidden
-          text-sm
-          text-white/70
-
-          lg:block
-        "
-      >
-        0{currentSlide + 1} / 0{heroSlides.length}
-      </div> */}
+                ${
+                  index === currentSlide
+                    ? "w-8 bg-green-400 sm:w-10"
+                    : "w-2 bg-white/50 hover:bg-white/80"
+                }
+              `}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

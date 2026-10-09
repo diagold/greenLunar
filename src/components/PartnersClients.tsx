@@ -1,206 +1,585 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
-const clients = [
-  {
-    name: "Nigerian Army",
-    logo: "https://res.cloudinary.com/diobpauw/image/upload/v1789023238/NA_Med.jpg",
-  },
-  {
-    name: "TAP 0",
-    logo: "/images/clients/TAP.jpeg",
-  },
-  {
-   name: "TAP 1",
-    logo: "/images/clients/TAP.jpeg",
-  },
-  {
-   name: "nrc",
-    logo: "/images/clients/nrc-logo.png",
-  }
-];
+/* =========================================================
+   TYPES
+========================================================= */
 
-const partners = [
-  {
-    name: "Partner 1",
-    logo: "https://res.cloudinary.com/diobpauw/image/upload/v1789023223/TAP.jpg",
-  },
-  {
-    name: "Partner 2",
-    logo: "/images/partners/TAP.jpeg",
-  },
-    {
-    name: "Partner 3",
-    logo: "/images/partners/NA_Med.jpeg",
-  },
-      {
-    name: "Partner 4",
-    logo: "/images/partners/NA_Med.jpeg",
-  },
-];
+export interface PartnersClientsSettings {
+  id: string;
+  eyebrow: string | null;
+  heading: string;
+  description: string | null;
 
-function LogoGrid({
-  items,
+  partners_eyebrow: string | null;
+  partners_heading: string | null;
+  partners_description: string | null;
+
+  clients_eyebrow: string | null;
+  clients_heading: string | null;
+  clients_description: string | null;
+
+  is_active: boolean;
+}
+
+export interface PartnerClientItem {
+  id: string;
+  section_id: string;
+
+  item_type: "partner" | "client";
+
+  name: string;
+  logo_url: string;
+  website_url: string | null;
+
+  sort_order: number;
+  is_active: boolean;
+}
+
+interface LogoSliderProps {
+  items: PartnerClientItem[];
+}
+
+/* =========================================================
+   LOGO CARD
+========================================================= */
+
+function LogoCard({
+  item,
 }: {
-  items: { name: string; logo: string }[];
+  item: PartnerClientItem;
 }) {
-  return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-      {items.map((item, index) => (
-        <motion.div
-          key={item.name}
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{
-            duration: 0.5,
-            delay: index * 0.06,
-          }}
+  const content = (
+    <div
+      className="
+        group
+        flex
+        h-[130px]
+        items-center
+        justify-center
+        overflow-hidden
+        rounded-lg
+        bg-white
+        p-5
+        shadow-sm
+        transition-all
+        duration-300
+        hover:-translate-y-1
+        hover:shadow-md
+      "
+    >
+      <img
+        src={item.logo_url}
+        alt={item.name}
+        loading="lazy"
         className="
-          flex
-          min-h-[100px]
-          items-center
-          justify-center
-          rounded-lg
-          bg-white
-          px-6
-          py-6
+          max-h-[75px]
+          max-w-full
+          object-contain
+          grayscale
           transition-all
-          duration-300
-          hover:-translate-y-1
-          hover:shadow-[0_10px_25px_rgba(0,0,0,0.08)]
+          duration-500
+          ease-out
+          group-hover:scale-105
+          group-hover:grayscale-0
         "
+      />
+    </div>
+  );
+
+  if (!item.website_url) {
+    return content;
+  }
+
+  return (
+    <a
+      href={item.website_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Visit ${item.name}`}
+      className="block"
+    >
+      {content}
+    </a>
+  );
+}
+
+/* =========================================================
+   REUSABLE LOGO SLIDER
+========================================================= */
+
+function LogoSlider({
+  items,
+}: LogoSliderProps) {
+  const ITEMS_PER_PAGE = 6;
+
+  const [currentPage, setCurrentPage] =
+    useState(0);
+
+  const [isPaused, setIsPaused] =
+    useState(false);
+
+  /* =========================================================
+     DIVIDE LOGOS INTO GROUPS OF SIX
+  ========================================================= */
+
+  const pages: PartnerClientItem[][] = [];
+
+  for (
+    let i = 0;
+    i < items.length;
+    i += ITEMS_PER_PAGE
+  ) {
+    pages.push(
+      items.slice(
+        i,
+        i + ITEMS_PER_PAGE
+      )
+    );
+  }
+
+  const totalPages = pages.length;
+
+  const canSlide =
+    items.length > ITEMS_PER_PAGE;
+
+  /* =========================================================
+     NEXT SLIDE
+  ========================================================= */
+
+  const nextSlide = () => {
+    if (!canSlide) return;
+
+    setCurrentPage((previous) =>
+      previous >= totalPages - 1
+        ? 0
+        : previous + 1
+    );
+  };
+
+  /* =========================================================
+     PREVIOUS SLIDE
+  ========================================================= */
+
+  const previousSlide = () => {
+    if (!canSlide) return;
+
+    setCurrentPage((previous) =>
+      previous <= 0
+        ? totalPages - 1
+        : previous - 1
+    );
+  };
+
+  /* =========================================================
+     AUTOMATIC SLIDER
+  ========================================================= */
+
+  useEffect(() => {
+    if (
+      !canSlide ||
+      isPaused ||
+      totalPages <= 1
+    ) {
+      return;
+    }
+
+    const interval =
+      window.setInterval(() => {
+        setCurrentPage(
+          (previous) =>
+            previous >=
+            totalPages - 1
+              ? 0
+              : previous + 1
+        );
+      }, 5000);
+
+    return () =>
+      window.clearInterval(interval);
+  }, [
+    canSlide,
+    isPaused,
+    totalPages,
+  ]);
+
+  /* =========================================================
+     KEEP CURRENT PAGE VALID
+  ========================================================= */
+
+  useEffect(() => {
+    if (totalPages === 0) {
+      if (currentPage !== 0) {
+        setCurrentPage(0);
+      }
+
+      return;
+    }
+
+    if (
+      currentPage >= totalPages
+    ) {
+      setCurrentPage(0);
+    }
+  }, [
+    currentPage,
+    totalPages,
+  ]);
+
+  /* =========================================================
+     NOTHING TO DISPLAY
+  ========================================================= */
+
+  if (items.length === 0) {
+    return (
+      <div className="flex min-h-[276px] items-center justify-center">
+        <p className="text-sm text-gray-500">
+          No logos available.
+        </p>
+      </div>
+    );
+  }
+
+  /* =========================================================
+     SLIDER
+  ========================================================= */
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() =>
+        setIsPaused(true)
+      }
+      onMouseLeave={() =>
+        setIsPaused(false)
+      }
+    >
+      {/* =====================================================
+          SLIDER VIEWPORT
+      ====================================================== */}
+
+      <div className="overflow-hidden">
+        <div
+          className="
+            flex
+            transition-transform
+            duration-700
+            ease-in-out
+          "
+          style={{
+            transform: `translateX(-${
+              currentPage * 100
+            }%)`,
+          }}
         >
-          <img
-            src={item.logo}
-            alt={item.name}
+          {pages.map(
+            (page, pageIndex) => (
+              <div
+                key={pageIndex}
+                className="w-full shrink-0"
+              >
+                {/*
+                  Original grid retained:
+
+                  Desktop / Tablet:
+                  3 columns x 2 rows = 6
+
+                  Mobile:
+                  2 columns x 3 rows = 6
+                */}
+
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  {page.map(
+                    (item) => (
+                      <LogoCard
+                        key={item.id}
+                        item={item}
+                      />
+                    )
+                  )}
+                </div>
+              </div>
+            )
+          )}
+        </div>
+      </div>
+
+      {/* =====================================================
+          CONTROLS
+      ====================================================== */}
+
+      {canSlide && (
+        <div className="mt-6 flex items-center justify-center gap-5">
+          {/* PREVIOUS */}
+
+          <button
+            type="button"
+            onClick={previousSlide}
+            aria-label="Previous logos"
             className="
-              max-h-12
-              max-w-[140px]
-              object-contain
-              opacity-70
+              flex
+              h-9
+              w-9
+              shrink-0
+              items-center
+              justify-center
+              rounded-full
+              border
+              border-gray-200
+              bg-white
+              text-gray-600
+              shadow-sm
               transition-all
               duration-300
-              hover:grayscale-0
-              hover:opacity-100
+              hover:border-[#063d2b]
+              hover:bg-[#063d2b]
+              hover:text-white
             "
-          />
-        </motion.div>
-      ))}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              className="h-4 w-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 18l-6-6 6-6"
+              />
+            </svg>
+          </button>
+
+          {/* PAGE INDICATORS */}
+
+          <div className="flex items-center justify-center gap-2">
+            {pages.map(
+              (_, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage(
+                      index
+                    )
+                  }
+                  aria-label={`Go to logo page ${
+                    index + 1
+                  }`}
+                  className={`
+                    h-2
+                    rounded-full
+                    transition-all
+                    duration-300
+
+                    ${
+                      currentPage ===
+                      index
+                        ? "w-6 bg-green-600"
+                        : "w-2 bg-gray-300 hover:bg-gray-400"
+                    }
+                  `}
+                />
+              )
+            )}
+          </div>
+
+          {/* NEXT */}
+
+          <button
+            type="button"
+            onClick={nextSlide}
+            aria-label="Next logos"
+            className="
+              flex
+              h-9
+              w-9
+              shrink-0
+              items-center
+              justify-center
+              rounded-full
+              border
+              border-gray-200
+              bg-white
+              text-gray-600
+              shadow-sm
+              transition-all
+              duration-300
+              hover:border-[#063d2b]
+              hover:bg-[#063d2b]
+              hover:text-white
+            "
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              className="h-4 w-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 18l6-6-6-6"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-export default function PartnersClients() {
+/* =========================================================
+   PARTNERS & CLIENTS SECTION
+========================================================= */
+
+interface PartnersClientsProps {
+  settings: PartnersClientsSettings;
+
+  partners: PartnerClientItem[];
+
+  clients: PartnerClientItem[];
+}
+
+export default function PartnersClients({
+  settings,
+  partners,
+  clients,
+}: PartnersClientsProps) {
   return (
-    <section className="bg-white px-5 py-20 sm:px-8 lg:px-12 lg:py-28">
+    <section className="w-full bg-white px-6 py-24 sm:px-8 lg:px-10 lg:py-32">
       <div className="mx-auto max-w-7xl">
 
-        {/* Section Heading */}
-        <motion.div
-          initial={{ opacity: 0, y: 25 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.7 }}
-          className="mx-auto max-w-3xl text-center"
-        >
-          <p className="text-xs font-medium tracking-[0.2em] text-green-600 sm:text-sm">
-            OUR NETWORK
-          </p>
+        {/* =====================================================
+            SECTION HEADER
+        ====================================================== */}
 
-          <h2 className="mt-4 text-4xl font-semibold leading-tight tracking-tight text-gray-900 sm:text-5xl">
-            Trusted relationships.
-            <br />
-            <span className="text-green-600">
-              Shared success.
-            </span>
+        <div className="mx-auto max-w-3xl text-center">
+          {settings.eyebrow && (
+            <p className="text-sm font-medium uppercase tracking-[0.25em] text-green-600">
+              {settings.eyebrow}
+            </p>
+          )}
+
+          <h2 className="mt-5 text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl">
+            {settings.heading}
           </h2>
 
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-gray-600 sm:text-lg sm:leading-8">
-            We work with forward-thinking organizations and technology
-            partners to deliver solutions that create lasting value.
-          </p>
-        </motion.div>
+          {settings.description && (
+            <p className="mt-5 text-base leading-8 text-gray-600">
+              {
+                settings.description
+              }
+            </p>
+          )}
+        </div>
 
-        {/* Two Panels */}
-        <div className="
-                  mt-16
-                  grid
-                  grid-cols-1
-                  items-start
-                  gap-6
-                  lg:grid-cols-2
-                  lg:gap-8 
-        ">
+        {/* =====================================================
+            PARTNERS + CLIENTS
+        ====================================================== */}
 
-          {/* ==============================
+        <div
+          className="
+            mt-16
+            grid
+            grid-cols-1
+            items-start
+            gap-8
+            lg:grid-cols-2
+          "
+        >
+
+          {/* =================================================
               CLIENTS
-          =============================== */}
-          <motion.div
-            initial={{ opacity: 0, x: -35 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.7 }}
+          ================================================== */}
+
+          <div
             className="
               rounded-xl
               bg-[#f7faf8]
-              p-7
-              sm:p-10
-              lg:p-12
+              p-6
+              sm:p-8
             "
           >
             <div className="mb-8">
-              <p className="text-xs font-medium tracking-[0.18em] text-green-600">
-                CLIENTS
-              </p>
+              {settings.clients_eyebrow && (
+                <p className="text-xs font-medium uppercase tracking-[0.25em] text-green-600">
+                  {
+                    settings.clients_eyebrow
+                  }
+                </p>
+              )}
 
-              <h3 className="mt-3 text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl">
-                Our Clients
-              </h3>
+              {settings.clients_heading && (
+                <h3 className="mt-3 text-2xl font-medium text-gray-900">
+                  {
+                    settings.clients_heading
+                  }
+                </h3>
+              )}
 
-              <p className="mt-3 max-w-md text-sm leading-6 text-gray-600">
-                Organizations that trust Green Lunar to support their digital
-                transformation and technology needs.
-              </p>
+              {settings.clients_description && (
+                <p className="mt-3 text-sm leading-6 text-gray-600">
+                  {
+                    settings.clients_description
+                  }
+                </p>
+              )}
             </div>
 
-            <LogoGrid items={clients} />
-          </motion.div>
-
-          {/* ==============================
+            <LogoSlider
+              items={clients}
+            />
+          </div>
+          
+          {/* =================================================
               PARTNERS
-          =============================== */}
-          <motion.div
-            initial={{ opacity: 0, x: 35 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.7, delay: 0.1 }}
+          ================================================== */}
+
+          <div
             className="
               rounded-xl
               bg-[#ecfdf5]
-              p-7
-              sm:p-10
-              lg:p-12
+              p-6
+              sm:p-8
             "
           >
             <div className="mb-8">
-              <p className="text-xs font-medium tracking-[0.18em] text-green-600">
-                PARTNERS
-              </p>
+              {settings.partners_eyebrow && (
+                <p className="text-xs font-medium uppercase tracking-[0.25em] text-green-600">
+                  {
+                    settings.partners_eyebrow
+                  }
+                </p>
+              )}
 
-              <h3 className="mt-3 text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl">
-                Our Partners
-              </h3>
+              {settings.partners_heading && (
+                <h3 className="mt-3 text-2xl font-medium text-gray-900">
+                  {
+                    settings.partners_heading
+                  }
+                </h3>
+              )}
 
-              <p className="mt-3 max-w-md text-sm leading-6 text-gray-600">
-                Strategic technology and business partners helping us deliver
-                reliable solutions across different industries.
-              </p>
+              {settings.partners_description && (
+                <p className="mt-3 text-sm leading-6 text-gray-600">
+                  {
+                    settings.partners_description
+                  }
+                </p>
+              )}
             </div>
 
-            <LogoGrid items={partners} />
-          </motion.div>
+            <LogoSlider
+              items={partners}
+            />
+          </div>
+
 
         </div>
       </div>
