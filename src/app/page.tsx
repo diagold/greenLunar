@@ -6,8 +6,8 @@ import MarketReach from "../components/MarketReach";
 import TrustSection from "../components/TrustSection";
 import PartnersClients from "../components/PartnersClients";
 import Footer from "../components/Footer";
-import MemberCompany from "./memberCompany/page";
 import HomeFeaturedNews from "@/components/news/HomeFeaturedNews";
+import MemberCompany from "@/components/memberCompany/MemberCompanyContent";
 
 import { createClient } from "@/lib/supabase/server";
 import NewsModal from "@/components/NewsModal";

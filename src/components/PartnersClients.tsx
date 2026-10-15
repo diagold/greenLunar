@@ -1,4 +1,3 @@
-"use client";
 
 import Image from "next/image";
 
@@ -9,7 +8,25 @@ type LogoItem = {
   website_url?: string | null;
 };
 
+type PartnersClientsSettings = {
+  id?: string | null;
+  eyebrow?: string | null;
+  heading?: string | null;
+  description?: string | null;
+
+  partners_eyebrow?: string | null;
+  partners_heading?: string | null;
+  partners_description?: string | null;
+
+  clients_eyebrow?: string | null;
+  clients_heading?: string | null;
+  clients_description?: string | null;
+
+  is_active?: boolean | null;
+};
+
 interface PartnersClientsProps {
+  settings?: PartnersClientsSettings | null;
   partners?: LogoItem[] | null;
   clients?: LogoItem[] | null;
 }
@@ -27,7 +44,6 @@ function hasValidLogo(
   );
 }
 
-// Reusable logo card
 function LogoCard({ item }: { item: ValidLogoItem }) {
   const logo = (
     <div
@@ -48,10 +64,9 @@ function LogoCard({ item }: { item: ValidLogoItem }) {
         height={90}
         className="
           max-h-20 w-auto max-w-full
-          object-contain grayscale-0
-          transition-all duration-300
+          object-contain
+          transition-transform duration-300
           group-hover:scale-105
-          group-hover:grayscale
         "
       />
     </div>
@@ -75,6 +90,7 @@ function LogoCard({ item }: { item: ValidLogoItem }) {
 }
 
 export default function PartnersClients({
+  settings,
   partners = [],
   clients = [],
 }: PartnersClientsProps) {
@@ -85,11 +101,16 @@ export default function PartnersClients({
   const hasPartners = validPartners.length > 0;
   const hasClients = validClients.length > 0;
 
+  // Respect the Admin Dashboard section visibility setting
+  if (settings?.is_active === false) {
+    return null;
+  }
+
   return (
     <section className="bg-white py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
 
-        {/* MAIN SECTION HEADING - ALWAYS VISIBLE */}
+        {/* MAIN HEADING - ALWAYS VISIBLE WHEN ACTIVE */}
         <div className="mx-auto mb-14 max-w-3xl text-center">
           <span
             className="
@@ -97,7 +118,7 @@ export default function PartnersClients({
               tracking-widest text-green-700
             "
           >
-            Our Network
+            {settings?.eyebrow || "Our Network"}
           </span>
 
           <h2
@@ -107,17 +128,16 @@ export default function PartnersClients({
               sm:text-4xl lg:text-5xl
             "
           >
-            Partners &amp; Clients
+            {settings?.heading || "Partners & Clients"}
           </h2>
 
           <p className="mt-5 text-base leading-8 text-gray-600">
-            We work with trusted partners and organisations
-            across industries to deliver innovative solutions,
-            create lasting value and support sustainable growth.
+            {settings?.description ||
+              "We work with trusted partners and organisations across industries to deliver innovative solutions, create lasting value and support sustainable growth."}
           </p>
         </div>
 
-        {/* LOGO SECTIONS - ONLY VISIBLE WHEN LOGOS EXIST */}
+        {/* LOGO CONTAINERS - ONLY SHOW WHEN LOGOS EXIST */}
         {(hasPartners || hasClients) && (
           <div
             className={
@@ -127,23 +147,29 @@ export default function PartnersClients({
             }
           >
 
-            {/* PARTNERS LOGO CONTAINER */}
+            {/* PARTNERS CONTAINER */}
             {hasPartners && (
-              <div
-                className="
-                  rounded-2xl bg-[#ecfdf5]
-                  p-8 lg:p-10
-                "
-              >
+              <div className="rounded-2xl bg-[#ecfdf5] p-8 lg:p-10">
                 <div className="mb-8">
-                  <h3 className="text-2xl font-semibold text-gray-900">
-                    Our Partners
+
+                  {settings?.partners_eyebrow && (
+                    <span
+                      className="
+                        text-sm font-semibold uppercase
+                        tracking-widest text-green-700
+                      "
+                    >
+                      {settings.partners_eyebrow}
+                    </span>
+                  )}
+
+                  <h3 className="mt-3 text-2xl font-semibold text-gray-900">
+                    {settings?.partners_heading || "Our Partners"}
                   </h3>
 
                   <p className="mt-3 text-sm leading-7 text-gray-600">
-                    Collaborating with organisations to
-                    deliver innovative solutions and
-                    create sustainable business value.
+                    {settings?.partners_description ||
+                      "Collaborating with organisations to deliver innovative solutions and create sustainable business value."}
                   </p>
                 </div>
 
@@ -158,22 +184,29 @@ export default function PartnersClients({
               </div>
             )}
 
-            {/* CLIENTS LOGO CONTAINER */}
+            {/* CLIENTS CONTAINER */}
             {hasClients && (
-              <div
-                className="
-                  rounded-2xl bg-[#f7faf8]
-                  p-8 lg:p-10
-                "
-              >
+              <div className="rounded-2xl bg-[#f7faf8] p-8 lg:p-10">
                 <div className="mb-8">
-                  <h3 className="text-2xl font-semibold text-gray-900">
-                    Our Clients
+
+                  {settings?.clients_eyebrow && (
+                    <span
+                      className="
+                        text-sm font-semibold uppercase
+                        tracking-widest text-green-700
+                      "
+                    >
+                      {settings.clients_eyebrow}
+                    </span>
+                  )}
+
+                  <h3 className="mt-3 text-2xl font-semibold text-gray-900">
+                    {settings?.clients_heading || "Our Clients"}
                   </h3>
 
                   <p className="mt-3 text-sm leading-7 text-gray-600">
-                    Organisations that trust our
-                    technology, services and expertise.
+                    {settings?.clients_description ||
+                      "Organisations that trust our technology, services and expertise."}
                   </p>
                 </div>
 
@@ -190,7 +223,6 @@ export default function PartnersClients({
 
           </div>
         )}
-
       </div>
     </section>
   );

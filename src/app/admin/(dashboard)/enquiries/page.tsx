@@ -1,57 +1,17 @@
-import Link from "next/link";
 
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import StatusFilter from "@/components/admin/StatusFilter";
-const supabase = await createClient();
-
-import {
-  Search,
-  Inbox,
-  ChevronDown,
-} from "lucide-react";
-
-
+import { Search, Inbox } from "lucide-react";
 
 const PAGE_SIZE = 10;
-const [
-  allCountResult,
-  newCountResult,
-  readCountResult,
-  repliedCountResult,
-  archivedCountResult,
-] = await Promise.all([
-  supabase
-    .from("enquiries")
-    .select("*", { count: "exact", head: true }),
 
-  supabase
-    .from("enquiries")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "new"),
-
-  supabase
-    .from("enquiries")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "read"),
-
-  supabase
-    .from("enquiries")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "replied"),
-
-  supabase
-    .from("enquiries")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "archived"),
-]);
-
-const statusCounts = {
-  all: allCountResult.count ?? 0,
-  new: newCountResult.count ?? 0,
-  read: readCountResult.count ?? 0,
-  replied: repliedCountResult.count ?? 0,
-  archived: archivedCountResult.count ?? 0,
-};
+const VALID_STATUSES = [
+  "new",
+  "read",
+  "replied",
+  "archived",
+];
 
 type EnquiriesPageProps = {
   searchParams: Promise<{
@@ -64,51 +24,187 @@ type EnquiriesPageProps = {
 export default async function EnquiriesPage({
   searchParams,
 }: EnquiriesPageProps) {
+  // Resolve request-specific parameters
   const params = await searchParams;
 
-  const search = params.search?.trim() || "";
-  const status = params.status || "all";
+  const search =
+    typeof params.search === "string"
+      ? params.search.trim()
+      : "";
+
+  const status =
+    typeof params.status === "string" &&
+    VALID_STATUSES.includes(params.status)
+      ? params.status
+      : "all";
 
   const requestedPage = Number(params.page || "1");
-  const currentPage =
-    Number.isFinite(requestedPage) && requestedPage > 0
-      ? Math.floor(requestedPage)
+
+  const page =
+    Number.isSafeInteger(requestedPage) &&
+    requestedPage > 0
+      ? requestedPage
       : 1;
 
+  // IMPORTANT:
+  // Initialize Supabase inside the request scope.
+  // Never call createClient() at module level.
   const supabase = await createClient();
+
+  // Fetch status counts within the request scope.
+  const [
+    allCountResult,
+    newCountResult,
+    readCountResult,
+    repliedCountResult,
+    archivedCountResult,
+  ] = await Promise.all([
+    supabase
+      .from("enquiries")
+      .select("*", {
+        count: "exact",
+        head: true,
+      }),
+
+    supabase
+      .from("enquiries")
+      .select("*", {
+        count: "exact",
+        head: true,
+      })
+      .eq("status", "new"),
+
+    supabase
+      .from("enquiries")
+      .select("*", {
+        count: "exact",
+        head: true,
+      })
+      .eq("status", "read"),
+
+    supabase
+      .from("enquiries")
+      .select("*", {
+        count: "exact",
+        head: true,
+      })
+      .eq("status", "replied"),
+
+    supabase
+      .from("enquiries")
+      .select("*", {
+        count: "exact",
+        head: true,
+      })
+      .eq("status", "archived"),
+  ]);
+
+  // Log count query errors for debugging
+  const countResults = [
+    allCountResult,
+    newCountResult,
+    readCountResult,
+    repliedCountResult,
+    archivedCountResult,
+  ];
+
+  for (const result of countResults) {
+    if (result.error) {
+      console.error(
+        "Error fetching enquiry status counts:",
+        result.error.message
+      );
+    }
+  }
+
+  const statusCounts = {
+    all: allCountResult.count ?? 0,
+    new: newCountResult.count ?? 0,
+    read: readCountResult.count ?? 0,
+    replied: repliedCountResult.count ?? 0,
+    archived: archivedCountResult.count ?? 0,
+  };
+
+  // Prepare search query
+  const safeSearch = search
+    .replace(/[%_,()]/g, " ")
+    .trim();
+
+  // Build enquiry query
+  let countQuery = supabase
+    .from("enquiries")
+    .select("*", { count: "exact", head: true });
+
+  if (status !== "all") {
+    countQuery = countQuery.eq("status", status);
+  }
+
+  if (safeSearch) {
+    const searchExpression =
+      `first_name.ilike.%${safeSearch}%,` +
+      `last_name.ilike.%${safeSearch}%,` +
+      `email.ilike.%${safeSearch}%,` +
+      `subject.ilike.%${safeSearch}%,` +
+      `location.ilike.%${safeSearch}%`;
+
+    countQuery = countQuery.or(searchExpression);
+  }
+
+  // Count matching enquiries to determine valid page range
+  const {
+    count: filteredCount,
+    error: countError,
+  } = await countQuery;
+
+  if (countError) {
+    console.error("Unable to count enquiries:", {
+      message: countError.message,
+      details: countError.details,
+      hint: countError.hint,
+      code: countError.code,
+    });
+  }
+
+  const totalRecords = filteredCount ?? 0;
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(totalRecords / PAGE_SIZE)
+  );
+
+  // Prevent requests for pages beyond available records
+  const currentPage = Math.min(page, totalPages);
 
   const from = (currentPage - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
   let query = supabase
     .from("enquiries")
-    .select("*", { count: "exact" })
-    .order("created_at", { ascending: false });
+    .select("*")
+    .order("created_at", {
+      ascending: false,
+    });
 
-  // STATUS FILTER
-  if (
-    ["new", "read", "replied", "archived"].includes(status)
-  ) {
+  // Status filter
+  if (status !== "all") {
     query = query.eq("status", status);
   }
 
-  // SEARCH
-  if (search) {
-    const safeSearch = search
-      .replace(/[%_,()]/g, " ")
-      .trim();
-
-    if (safeSearch) {
-      query = query.or(
-        `first_name.ilike.%${safeSearch}%,last_name.ilike.%${safeSearch}%,email.ilike.%${safeSearch}%,subject.ilike.%${safeSearch}%,location.ilike.%${safeSearch}%`
-      );
-    }
+  // Search filter
+  if (safeSearch) {
+    query = query.or(
+      `first_name.ilike.%${safeSearch}%,` +
+        `last_name.ilike.%${safeSearch}%,` +
+        `email.ilike.%${safeSearch}%,` +
+        `subject.ilike.%${safeSearch}%,` +
+        `location.ilike.%${safeSearch}%`
+    );
   }
 
+  // Fetch paginated records
   const {
     data: enquiries,
     error,
-    count,
   } = await query.range(from, to);
 
   if (error) {
@@ -120,32 +216,27 @@ export default async function EnquiriesPage({
     });
   }
 
-  const totalRecords = count ?? 0;
+  const hasError = Boolean(error || countError);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(totalRecords / PAGE_SIZE)
-  );
-
-  const createPageUrl = (page: number) => {
-    const query = new URLSearchParams();
+  // Preserve filters when navigating between pages
+  const createPageUrl = (targetPage: number) => {
+    const urlParams = new URLSearchParams();
 
     if (search) {
-      query.set("search", search);
+      urlParams.set("search", search);
     }
 
     if (status !== "all") {
-      query.set("status", status);
+      urlParams.set("status", status);
     }
 
-    query.set("page", String(page));
+    urlParams.set("page", String(targetPage));
 
-    return `/admin/enquiries?${query.toString()}`;
+    return `/admin/enquiries?${urlParams.toString()}`;
   };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-
       {/* PAGE HEADER */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">
@@ -158,9 +249,8 @@ export default async function EnquiriesPage({
         </p>
       </div>
 
-      {/* SEARCH + FILTER */}
+      {/* SEARCH AND FILTER */}
       <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-
         <form
           method="GET"
           className="flex flex-col gap-3 lg:flex-row"
@@ -173,7 +263,7 @@ export default async function EnquiriesPage({
             />
           )}
 
-          {/* SEARCH */}
+          {/* Search */}
           <div className="relative flex-1">
             <Search
               size={18}
@@ -198,11 +288,13 @@ export default async function EnquiriesPage({
             />
           </div>
 
-        <StatusFilter
-      value={status}
-      counts={statusCounts}
-    />
+          {/* Status filter */}
+          <StatusFilter
+            value={status}
+            counts={statusCounts}
+          />
 
+          {/* Submit */}
           <button
             type="submit"
             className="
@@ -215,6 +307,7 @@ export default async function EnquiriesPage({
             Filter
           </button>
 
+          {/* Clear filters */}
           {(search || status !== "all") && (
             <Link
               href="/admin/enquiries"
@@ -229,22 +322,15 @@ export default async function EnquiriesPage({
               Clear
             </Link>
           )}
-
         </form>
-
       </div>
 
-      {/* TABLE */}
+      {/* ENQUIRIES TABLE */}
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-
         <div className="overflow-x-auto">
-
           <table className="w-full">
-
             <thead className="border-b border-gray-200 bg-gray-50">
-
               <tr>
-
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                   Name
                 </th>
@@ -268,111 +354,101 @@ export default async function EnquiriesPage({
                 <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
                   Action
                 </th>
-
               </tr>
-
             </thead>
 
             <tbody className="divide-y divide-gray-100">
-
-              {enquiries?.map((enquiry) => (
-                <tr
-                  key={enquiry.id}
-                  className={`
-                    transition hover:bg-gray-50
-                    ${
-                      enquiry.status === "new"
-                        ? "bg-green-50/30"
-                        : ""
-                    }
-                  `}
-                >
-
-                  <td className="px-6 py-4">
-
-                    <div className="flex items-center gap-3">
-
-                      {enquiry.status === "new" && (
-                        <span
-                          className="h-2 w-2 shrink-0 rounded-full bg-green-600"
-                          title="New enquiry"
-                        />
-                      )}
-
-                      <div>
-
-                        <p className="font-medium text-gray-900">
-                          {enquiry.first_name}{" "}
-                          {enquiry.last_name}
-                        </p>
-
-                        <p className="mt-1 text-sm text-gray-500">
-                          {enquiry.email}
-                        </p>
-
-                      </div>
-
-                    </div>
-
-                  </td>
-
-                  <td className="max-w-[280px] px-6 py-4">
-
-                    <p className="truncate text-sm text-gray-700">
-                      {enquiry.subject}
-                    </p>
-
-                  </td>
-
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {enquiry.location}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    <StatusBadge
-                      status={enquiry.status}
-                    />
-                  </td>
-
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                    {new Date(
-                      enquiry.created_at
-                    ).toLocaleDateString(
-                      "en-NG",
-                      {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
+              {!hasError &&
+                enquiries?.map((enquiry) => (
+                  <tr
+                    key={enquiry.id}
+                    className={`
+                      transition hover:bg-gray-50
+                      ${
+                        enquiry.status === "new"
+                          ? "bg-green-50/30"
+                          : ""
                       }
-                    )}
-                  </td>
+                    `}
+                  >
+                    {/* Name */}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        {enquiry.status === "new" && (
+                          <span
+                            className="h-2 w-2 shrink-0 rounded-full bg-green-600"
+                            title="New enquiry"
+                          />
+                        )}
 
-                  <td className="px-6 py-4 text-right">
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {enquiry.first_name}{" "}
+                            {enquiry.last_name}
+                          </p>
 
-                    <Link
-                      href={`/admin/enquiries/${enquiry.id}`}
-                      className="
-                        text-sm font-semibold
-                        text-[#073f30]
-                        hover:underline
-                      "
-                    >
-                      View
-                    </Link>
+                          <p className="mt-1 text-sm text-gray-500">
+                            {enquiry.email}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
 
-                  </td>
+                    {/* Subject */}
+                    <td className="max-w-[280px] px-6 py-4">
+                      <p className="truncate text-sm text-gray-700">
+                        {enquiry.subject}
+                      </p>
+                    </td>
 
-                </tr>
-              ))}
+                    {/* Location */}
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {enquiry.location || "—"}
+                    </td>
 
-              {!error && !enquiries?.length && (
+                    {/* Status */}
+                    <td className="px-6 py-4">
+                      <StatusBadge
+                        status={enquiry.status ?? "new"}
+                      />
+                    </td>
+
+                    {/* Date */}
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                      {enquiry.created_at
+                        ? new Date(
+                            enquiry.created_at
+                          ).toLocaleDateString("en-NG", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "—"}
+                    </td>
+
+                    {/* Action */}
+                    <td className="px-6 py-4 text-right">
+                      <Link
+                        href={`/admin/enquiries/${enquiry.id}`}
+                        className="
+                          text-sm font-semibold
+                          text-[#073f30]
+                          hover:underline
+                        "
+                      >
+                        View
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+
+              {/* Empty state */}
+              {!hasError && !enquiries?.length && (
                 <tr>
-
                   <td
                     colSpan={6}
                     className="px-6 py-16 text-center"
                   >
-
                     <Inbox
                       size={34}
                       className="mx-auto text-gray-300"
@@ -385,15 +461,13 @@ export default async function EnquiriesPage({
                     <p className="mt-1 text-sm text-gray-500">
                       Try changing your search or filter.
                     </p>
-
                   </td>
-
                 </tr>
               )}
 
-              {error && (
+              {/* Database error */}
+              {hasError && (
                 <tr>
-
                   <td
                     colSpan={6}
                     className="px-6 py-12 text-center"
@@ -401,21 +475,21 @@ export default async function EnquiriesPage({
                     <p className="font-medium text-red-600">
                       Unable to load enquiries.
                     </p>
-                  </td>
 
+                    <p className="mt-2 text-sm text-gray-500">
+                      Please refresh the page or try again
+                      later.
+                    </p>
+                  </td>
                 </tr>
               )}
-
             </tbody>
-
           </table>
-
         </div>
 
         {/* PAGINATION */}
-        {!error && totalRecords > 0 && (
+        {!hasError && totalRecords > 0 && (
           <div className="flex flex-col gap-4 border-t border-gray-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-
             <p className="text-sm text-gray-500">
               Showing{" "}
               <span className="font-medium text-gray-700">
@@ -423,7 +497,10 @@ export default async function EnquiriesPage({
               </span>
               {" – "}
               <span className="font-medium text-gray-700">
-                {Math.min(to + 1, totalRecords)}
+                {Math.min(
+                  from + (enquiries?.length ?? 0),
+                  totalRecords
+                )}
               </span>
               {" of "}
               <span className="font-medium text-gray-700">
@@ -432,12 +509,10 @@ export default async function EnquiriesPage({
             </p>
 
             <div className="flex items-center gap-2">
-
+              {/* Previous */}
               {currentPage > 1 ? (
                 <Link
-                  href={createPageUrl(
-                    currentPage - 1
-                  )}
+                  href={createPageUrl(currentPage - 1)}
                   className="
                     rounded-lg border border-gray-200
                     px-4 py-2 text-sm
@@ -453,6 +528,7 @@ export default async function EnquiriesPage({
                 </span>
               )}
 
+              {/* Page indicator */}
               <span className="px-2 text-sm text-gray-500">
                 Page{" "}
                 <strong className="text-gray-800">
@@ -462,11 +538,10 @@ export default async function EnquiriesPage({
                 {totalPages}
               </span>
 
+              {/* Next */}
               {currentPage < totalPages ? (
                 <Link
-                  href={createPageUrl(
-                    currentPage + 1
-                  )}
+                  href={createPageUrl(currentPage + 1)}
                   className="
                     rounded-lg border border-gray-200
                     px-4 py-2 text-sm
@@ -481,18 +556,15 @@ export default async function EnquiriesPage({
                   Next
                 </span>
               )}
-
             </div>
-
           </div>
         )}
-
       </div>
-
     </div>
   );
 }
 
+// Reusable status badge
 function StatusBadge({
   status,
 }: {
