@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 
+import GoogleAnalyticsProvider from "@/components/analytics/GoogleAnalyticsProvider";
+
 const outfit = Outfit({
   variable: "--font-outfit",
   subsets: ["latin"],
@@ -24,6 +26,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${outfit.variable} font-sans antialiased`}>
         {children}
+          <GoogleAnalyticsProvider />
       </body>
     </html>
   );

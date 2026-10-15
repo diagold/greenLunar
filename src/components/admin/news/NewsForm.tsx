@@ -1,1048 +1,614 @@
+
 "use client";
 
-import {
-  ChangeEvent,
-  useState,
-} from "react";
-
-import Link from "next/link";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 
-import {
-  createNewsArticle,
-  type NewsActionState,
-} from "@/app/admin/(dashboard)/news/action";
+export type NewsArticle = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string | null;
+  category: string | null;
+  author: string | null;
+  featured_image: string | null;
+  status: string | null;
+  is_featured: boolean | null;
+  published_at: string | null;
+};
 
-import RichTextEditor from "./RichTextEditor";
+type NewsFormProps = {
+  article?: NewsArticle | null;
+};
+
+type NewsFormData = {
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  category: string;
+  author: string;
+  featured_image: string;
+  status: "draft" | "published";
+  is_featured: boolean;
+};
 
 const categories = [
+  "Company News",
   "Technology",
   "Construction",
-  "Business",
-  "Real Estate",
-  "Hospitality",
+  "Renewable Energy",
   "Fitness & Wellness",
   "Media & Entertainment",
-  "Group News",
+  "Events",
+  "Partnerships",
+  "Other",
 ];
 
-function generateSlug(value: string) {
+function generateSlug(value: string): string {
   return value
     .toLowerCase()
     .trim()
-    .replace(/['"]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
-export default function NewsForm() {
+function getInitialData(
+  article?: NewsArticle | null
+): NewsFormData {
+  return {
+    title: article?.title ?? "",
+    slug: article?.slug ?? "",
+    excerpt: article?.excerpt ?? "",
+    content: article?.content ?? "",
+    category: article?.category ?? "",
+    author: article?.author ?? "",
+    featured_image: article?.featured_image ?? "",
+    status:
+      article?.status === "published"
+        ? "published"
+        : "draft",
+    is_featured: article?.is_featured ?? false,
+  };
+}
+
+export default function NewsForm({
+  article,
+}: NewsFormProps) {
   const router = useRouter();
 
-  const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
+  const isEditing = Boolean(article?.id);
 
-  const [category, setCategory] =
-    useState("Group News");
+  const [formData, setFormData] =
+    useState<NewsFormData>(() => getInitialData(article));
 
-  const [excerpt, setExcerpt] = useState("");
-  const [content, setContent] = useState("");
+  const [slugManuallyEdited, setSlugManuallyEdited] =
+    useState(Boolean(article?.slug));
 
-  const [author, setAuthor] =
-    useState("GreenLunar Group");
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [imageError, setImageError] = useState(false);
 
-  const [readTime, setReadTime] = useState(3);
+  // Populate fields when editing an existing article.
+  useEffect(() => {
+    setFormData(getInitialData(article));
+    setSlugManuallyEdited(Boolean(article?.slug));
+    setImageError(false);
+  }, [article]);
 
-  const [featured, setFeatured] = useState(false);
-
-  const [image, setImage] = useState<File | null>(
-    null
-  );
-
-  const [imagePreview, setImagePreview] =
-    useState<string | null>(null);
-
-  const [isSubmitting, setIsSubmitting] =
-    useState(false);
-
-  const [error, setError] = useState<string | null>(
-    null
-  );
-
-  const [slugEdited, setSlugEdited] =
-    useState(false);
-
-  /* =========================================================
-     TITLE
-  ========================================================= */
-
-  function handleTitleChange(
-    event: ChangeEvent<HTMLInputElement>
+  function updateField<K extends keyof NewsFormData>(
+    field: K,
+    value: NewsFormData[K]
   ) {
-    const value = event.target.value;
-
-    setTitle(value);
-
-    if (!slugEdited) {
-      setSlug(generateSlug(value));
-    }
+    setFormData((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
   }
 
-  /* =========================================================
-     SLUG
-  ========================================================= */
-
-  function handleSlugChange(
-    event: ChangeEvent<HTMLInputElement>
-  ) {
-    setSlugEdited(true);
-
-    setSlug(generateSlug(event.target.value));
+  function handleTitleChange(value: string) {
+    setFormData((previous) => ({
+      ...previous,
+      title: value,
+      slug: slugManuallyEdited
+        ? previous.slug
+        : generateSlug(value),
+    }));
   }
 
-  /* =========================================================
-     IMAGE
-  ========================================================= */
-
-  function handleImageChange(
-    event: ChangeEvent<HTMLInputElement>
-  ) {
-    const file = event.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError(
-        "Featured image must not exceed 5 MB."
-      );
-      return;
-    }
-
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-      setError(
-        "Please upload a JPG, PNG or WebP image."
-      );
-      return;
-    }
-
-    setError(null);
-    setImage(file);
-
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview);
-    }
-
-    setImagePreview(URL.createObjectURL(file));
+  function handleSlugChange(value: string) {
+    setSlugManuallyEdited(true);
+    updateField("slug", generateSlug(value));
   }
 
-  /* =========================================================
-     SUBMIT
-  ========================================================= */
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
 
- async function submitArticle(
-  status: "draft" | "published"
-) {
+    if (loading) return;
 
-    if (!title.trim()) {
-      setError("Please enter an article title.");
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    const title = formData.title.trim();
+    const slug = generateSlug(formData.slug || title);
+    const content = formData.content.trim();
+
+    if (!title) {
+      setErrorMessage("Article title is required.");
       return;
     }
 
-    if (!content.trim()) {
-      setError("Please enter the article content.");
+    if (!slug) {
+      setErrorMessage("A valid article slug is required.");
       return;
     }
 
-    setIsSubmitting(true);
-    setError(null);
+    if (!content) {
+      setErrorMessage("Article content is required.");
+      return;
+    }
+
+    setLoading(true);
 
     try {
-      const formData = new FormData();
+      // Important:
+      // Initialize the Supabase client INSIDE this
+      // async function to resolve its Promise.
+      const supabase = await createClient();
 
-      formData.append("title", title);
-      formData.append("slug", slug);
-      formData.append("category", category);
-      formData.append("excerpt", excerpt);
-      formData.append("content", content);
-      formData.append("author", author);
+      // Check whether another article uses this slug.
+      let duplicateQuery = supabase
+        .from("news")
+        .select("id")
+        .eq("slug", slug);
 
-      formData.append(
-        "read_time",
-        String(readTime)
-      );
-
-      formData.append(
-        "featured",
-        String(featured)
-      );
-
-      formData.append("status", status);
-
-      if (image) {
-        formData.append("featured_image", image);
+      if (article?.id) {
+        duplicateQuery = duplicateQuery.neq(
+          "id",
+          article.id
+        );
       }
 
-      const result: NewsActionState =
-        await createNewsArticle(formData);
+      const {
+        data: duplicates,
+        error: duplicateError,
+      } = await duplicateQuery.limit(1);
 
-      if (result && !result.success) {
-        setError(result.message);
-        setIsSubmitting(false);
-        return;
+      if (duplicateError) {
+        throw duplicateError;
       }
 
+      if (duplicates && duplicates.length > 0) {
+        throw new Error(
+          "Another news article already uses this slug. Please choose a different slug."
+        );
+      }
+
+      // Prepare the article payload.
+      const payload = {
+        title,
+        slug,
+        excerpt: formData.excerpt.trim() || null,
+        content,
+        category: formData.category || null,
+        author: formData.author.trim() || null,
+        featured_image:
+          formData.featured_image.trim() || null,
+        status: formData.status,
+        is_featured: formData.is_featured,
+        published_at:
+          formData.status === "published"
+            ? article?.published_at ??
+              new Date().toISOString()
+            : null,
+      };
+
+      if (isEditing && article) {
+        // Update the existing article.
+        const { data: updatedArticle, error } =
+          await supabase
+            .from("news")
+            .update(payload)
+            .eq("id", article.id)
+            .select("id")
+            .single();
+
+        if (error) throw error;
+
+        if (!updatedArticle) {
+          throw new Error(
+            "The article could not be updated."
+          );
+        }
+
+        setSuccessMessage(
+          "News article updated successfully."
+        );
+      } else {
+        // Create a new article.
+        const { data: createdArticle, error } =
+          await supabase
+            .from("news")
+            .insert(payload)
+            .select("id")
+            .single();
+
+        if (error) throw error;
+
+        if (!createdArticle) {
+          throw new Error(
+            "The article could not be created."
+          );
+        }
+
+        setSuccessMessage(
+          "News article created successfully."
+        );
+      }
+
+      router.push("/admin/news");
       router.refresh();
-    } catch (submissionError) {
-      console.error(submissionError);
+    } catch (error: unknown) {
+  console.error("News save error:", error);
 
-      setError(
-        "Something went wrong while saving the article."
-      );
-
-      setIsSubmitting(false);
-    }
+  if (error && typeof error === "object") {
+    console.error(
+      "Detailed Supabase error:",
+      JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
+    );
   }
 
+  const details =
+    error && typeof error === "object"
+      ? (error as {
+          message?: string;
+          code?: string;
+          details?: string;
+          hint?: string;
+        })
+      : null;
+
+  setErrorMessage(
+    [
+      details?.message || "Failed to save news article.",
+      details?.code ? `Code: ${details.code}` : "",
+      details?.details || "",
+      details?.hint || "",
+    ]
+      .filter(Boolean)
+      .join(" | ")
+  );
+} finally {
+  setLoading(false);
+}
+    
+   
+  }
+
+  const inputClass =
+    "mt-2 w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-green-600 focus:ring-2 focus:ring-green-600/10";
+
+  const labelClass =
+    "block text-sm font-medium text-gray-700";
+
   return (
-    <form className="space-y-8">
-
-      {/* =====================================================
-          ERROR
-      ====================================================== */}
-
-      {error && (
+    <form onSubmit={handleSubmit} className="space-y-8">
+      {/* Feedback messages */}
+      {errorMessage && (
         <div
-          className="
-            rounded-lg
-            border
-            border-red-200
-            bg-red-50
-            px-4
-            py-3
-            text-sm
-            text-red-700
-          "
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
-          {error}
+          {errorMessage}
         </div>
       )}
 
-      {/* =====================================================
-          MAIN GRID
-      ====================================================== */}
+      {successMessage && (
+        <div
+          role="status"
+          className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700"
+        >
+          {successMessage}
+        </div>
+      )}
 
-      <div
-        className="
-          grid
-          grid-cols-1
-          gap-8
-          xl:grid-cols-[minmax(0,1fr)_340px]
-        "
-      >
+      {/* Article Information */}
+      <section className="space-y-5">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            Article Information
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            {isEditing
+              ? "Update the existing news article."
+              : "Create a new article for the Green Lunar website."}
+          </p>
+        </div>
 
-        {/* ===================================================
-            LEFT
-        ==================================================== */}
-
-        <div className="space-y-6">
-
-          {/* ARTICLE DETAILS */}
-          <div
-            className="
-              rounded-xl
-              border
-              border-gray-200
-              bg-white
-              p-6
-              shadow-sm
-            "
+        <div>
+          <label
+            htmlFor="news-title"
+            className={labelClass}
           >
+            Article Title *
+          </label>
+          <input
+            id="news-title"
+            type="text"
+            required
+            value={formData.title}
+            onChange={(event) =>
+              handleTitleChange(event.target.value)
+            }
+            placeholder="Enter news article title"
+            className={inputClass}
+          />
+        </div>
 
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                Article Details
-              </h2>
+        <div>
+          <label
+            htmlFor="news-slug"
+            className={labelClass}
+          >
+            Article Slug *
+          </label>
+          <input
+            id="news-slug"
+            type="text"
+            required
+            value={formData.slug}
+            onChange={(event) =>
+              handleSlugChange(event.target.value)
+            }
+            placeholder="article-url-slug"
+            className={inputClass}
+          />
+          <p className="mt-2 text-xs text-gray-500">
+            The slug determines the article URL.
+            Changing it may affect previously shared links.
+          </p>
+        </div>
 
-              <p className="mt-1 text-sm text-gray-500">
-                Enter the basic information for this
-                news article.
-              </p>
-            </div>
+        <div>
+          <label
+            htmlFor="news-excerpt"
+            className={labelClass}
+          >
+            Article Summary
+          </label>
+          <textarea
+            id="news-excerpt"
+            rows={3}
+            value={formData.excerpt}
+            onChange={(event) =>
+              updateField("excerpt", event.target.value)
+            }
+            placeholder="Write a short article summary"
+            className={inputClass}
+          />
+        </div>
 
+        <div>
+          <label
+            htmlFor="news-content"
+            className={labelClass}
+          >
+            Article Content *
+          </label>
+          <textarea
+            id="news-content"
+            rows={12}
+            required
+            value={formData.content}
+            onChange={(event) =>
+              updateField("content", event.target.value)
+            }
+            placeholder="Write the full news article here..."
+            className={inputClass}
+          />
+        </div>
+      </section>
 
-            {/* TITLE */}
-            <div className="mt-6">
+      {/* Classification and Author */}
+      <section className="space-y-5 border-t border-gray-100 pt-8">
+        <h2 className="text-lg font-semibold text-gray-900">
+          Classification & Author
+        </h2>
 
-              <label
-                htmlFor="title"
-                className="
-                  block
-                  text-sm
-                  font-medium
-                  text-gray-700
-                "
-              >
-                Article Title
-                <span className="ml-1 text-red-500">
-                  *
-                </span>
-              </label>
+        <div className="grid gap-5 md:grid-cols-2">
+          <div>
+            <label
+              htmlFor="news-category"
+              className={labelClass}
+            >
+              Category
+            </label>
+            <select
+              id="news-category"
+              value={formData.category}
+              onChange={(event) =>
+                updateField(
+                  "category",
+                  event.target.value
+                )
+              }
+              className={inputClass}
+            >
+              <option value="">Select category</option>
 
-              <input
-                id="title"
-                value={title}
-                onChange={handleTitleChange}
-                placeholder="Enter article title"
-                className="
-                  mt-2
-                  w-full
-                  rounded-lg
-                  border
-                  border-gray-200
-                  px-4
-                  py-3
-                  text-sm
-                  text-gray-800
-                  outline-none
-                  transition
-                  placeholder:text-gray-400
-                  focus:border-green-600
-                  focus:ring-2
-                  focus:ring-green-600/10
-                "
-              />
-
-            </div>
-
-
-            {/* SLUG */}
-            <div className="mt-5">
-
-              <label
-                htmlFor="slug"
-                className="
-                  block
-                  text-sm
-                  font-medium
-                  text-gray-700
-                "
-              >
-                URL Slug
-              </label>
-
-              <div
-                className="
-                  mt-2
-                  flex
-                  overflow-hidden
-                  rounded-lg
-                  border
-                  border-gray-200
-                  focus-within:border-green-600
-                  focus-within:ring-2
-                  focus-within:ring-green-600/10
-                "
-              >
-
-                <span
-                  className="
-                    flex
-                    items-center
-                    border-r
-                    border-gray-200
-                    bg-gray-50
-                    px-3
-                    text-sm
-                    text-gray-400
-                  "
-                >
-                  /news/
-                </span>
-
-                <input
-                  id="slug"
-                  value={slug}
-                  onChange={handleSlugChange}
-                  placeholder="article-slug"
-                  className="
-                    min-w-0
-                    flex-1
-                    px-4
-                    py-3
-                    text-sm
-                    text-gray-700
-                    outline-none
-                  "
-                />
-
-              </div>
-
-              <p className="mt-2 text-xs text-gray-400">
-                Generated automatically from the title.
-                You can edit it before publishing.
-              </p>
-
-            </div>
-
-
-            {/* CATEGORY */}
-            <div className="mt-5">
-
-              <label
-                htmlFor="category"
-                className="
-                  block
-                  text-sm
-                  font-medium
-                  text-gray-700
-                "
-              >
-                Category
-              </label>
-
-              <select
-                id="category"
-                value={category}
-                onChange={(event) =>
-                  setCategory(event.target.value)
-                }
-                className="
-                  mt-2
-                  w-full
-                  rounded-lg
-                  border
-                  border-gray-200
-                  bg-white
-                  px-4
-                  py-3
-                  text-sm
-                  text-gray-700
-                  outline-none
-                  focus:border-green-600
-                  focus:ring-2
-                  focus:ring-green-600/10
-                "
-              >
-
-                {categories.map((item) => (
-                  <option
-                    key={item}
-                    value={item}
-                  >
-                    {item}
+              {formData.category &&
+                !categories.includes(formData.category) && (
+                  <option value={formData.category}>
+                    {formData.category}
                   </option>
-                ))}
+                )}
 
-              </select>
-
-            </div>
-
-
-            {/* EXCERPT */}
-            <div className="mt-5">
-
-              <div className="flex items-center justify-between">
-
-                <label
-                  htmlFor="excerpt"
-                  className="
-                    block
-                    text-sm
-                    font-medium
-                    text-gray-700
-                  "
+              {categories.map((category) => (
+                <option
+                  key={category}
+                  value={category}
                 >
-                  Short Description
-                </label>
-
-                <span className="text-xs text-gray-400">
-                  {excerpt.length}/300
-                </span>
-
-              </div>
-
-              <textarea
-                id="excerpt"
-                value={excerpt}
-                maxLength={300}
-                onChange={(event) =>
-                  setExcerpt(event.target.value)
-                }
-                rows={4}
-                placeholder="Write a short summary of the article..."
-                className="
-                  mt-2
-                  w-full
-                  resize-none
-                  rounded-lg
-                  border
-                  border-gray-200
-                  px-4
-                  py-3
-                  text-sm
-                  leading-6
-                  text-gray-700
-                  outline-none
-                  placeholder:text-gray-400
-                  focus:border-green-600
-                  focus:ring-2
-                  focus:ring-green-600/10
-                "
-              />
-
-            </div>
-
+                  {category}
+                </option>
+              ))}
+            </select>
           </div>
 
-
-          {/* =================================================
-              ARTICLE CONTENT
-          ================================================== */}
-
-          <div
-            className="
-              rounded-xl
-              border
-              border-gray-200
-              bg-white
-              p-6
-              shadow-sm
-            "
-          >
-
-          <div className="space-y-3">
-            <h2 className="block text-lg font-semibold text-gray-900">
-              Article Content
-            </h2>
-              <p className="mt-1 text-sm text-gray-500">
-                Write the full content of the news
-                article.
-              </p>
-
-            <RichTextEditor
-              value={content}
-              onChange={setContent}
+          <div>
+            <label
+              htmlFor="news-author"
+              className={labelClass}
+            >
+              Author
+            </label>
+            <input
+              id="news-author"
+              type="text"
+              value={formData.author}
+              onChange={(event) =>
+                updateField(
+                  "author",
+                  event.target.value
+                )
+              }
+              placeholder="Author or organization"
+              className={inputClass}
             />
           </div>
+        </div>
+      </section>
 
-            <div
-              className="
-                mt-3
-                flex
-                items-center
-                justify-between
-                text-xs
-                text-gray-400
-              "
-            >
+      {/* Featured Image */}
+      <section className="space-y-5 border-t border-gray-100 pt-8">
+        <h2 className="text-lg font-semibold text-gray-900">
+          Featured Image
+        </h2>
 
-              <span>
-                Separate paragraphs with a blank line.
-              </span>
-
-              <span>
-                {content
-                  .trim()
-                  .split(/\s+/)
-                  .filter(Boolean).length}{" "}
-                words
-              </span>
-
-            </div>
-
-          </div>
-
+        <div>
+          <label
+            htmlFor="news-image"
+            className={labelClass}
+          >
+            Image URL
+          </label>
+          <input
+            id="news-image"
+            type="text"
+            value={formData.featured_image}
+            onChange={(event) => {
+              updateField(
+                "featured_image",
+                event.target.value
+              );
+              setImageError(false);
+            }}
+            placeholder="https://example.com/image.jpg"
+            className={inputClass}
+          />
         </div>
 
-
-        {/* ===================================================
-            RIGHT SIDEBAR
-        ==================================================== */}
-
-        <div className="space-y-6">
-
-
-          {/* FEATURED IMAGE */}
-          <div
-            className="
-              rounded-xl
-              border
-              border-gray-200
-              bg-white
-              p-5
-              shadow-sm
-            "
-          >
-
-            <h3 className="text-base font-semibold text-gray-900">
-              Featured Image
-            </h3>
-
-            <p className="mt-1 text-xs leading-5 text-gray-500">
-              Recommended landscape image. JPG, PNG
-              or WebP, maximum 5 MB.
-            </p>
-
-
-            <label
-              className="
-                group
-                relative
-                mt-5
-                flex
-                min-h-[210px]
-                cursor-pointer
-                items-center
-                justify-center
-                overflow-hidden
-                rounded-lg
-                border
-                border-dashed
-                border-gray-300
-                bg-gray-50
-                transition
-                hover:border-green-600
-                hover:bg-green-50/30
-              "
-            >
-
-              {imagePreview ? (
-                <>
-                  <img
-                    src={imagePreview}
-                    alt="Featured image preview"
-                    className="
-                      absolute
-                      inset-0
-                      h-full
-                      w-full
-                      object-cover
-                    "
-                  />
-
-                  <div
-                    className="
-                      absolute
-                      inset-0
-                      flex
-                      items-center
-                      justify-center
-                      bg-black/40
-                      opacity-0
-                      transition
-                      group-hover:opacity-100
-                    "
-                  >
-
-                    <span
-                      className="
-                        rounded-md
-                        bg-white
-                        px-4
-                        py-2
-                        text-xs
-                        font-semibold
-                        text-gray-800
-                      "
-                    >
-                      Change Image
-                    </span>
-
-                  </div>
-                </>
-              ) : (
-                <div className="px-5 text-center">
-
-                  <div
-                    className="
-                      mx-auto
-                      flex
-                      h-11
-                      w-11
-                      items-center
-                      justify-center
-                      rounded-lg
-                      bg-[#ecfdf5]
-                      text-green-700
-                    "
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.7"
-                      className="h-5 w-5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M12 5v14M5 12h14"
-                      />
-                    </svg>
-                  </div>
-
-                  <p
-                    className="
-                      mt-3
-                      text-sm
-                      font-medium
-                      text-gray-700
-                    "
-                  >
-                    Upload featured image
-                  </p>
-
-                  <p className="mt-1 text-xs text-gray-400">
-                    Click to select an image
-                  </p>
-
-                </div>
-              )}
-
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handleImageChange}
-                className="sr-only"
-              />
-
-            </label>
-
+        {formData.featured_image && !imageError && (
+          <div className="overflow-hidden rounded-xl border border-gray-100 bg-gray-50 p-3">
+            <img
+              key={formData.featured_image}
+              src={formData.featured_image}
+              alt="News article preview"
+              className="h-64 w-full rounded-lg object-cover"
+              onError={() => setImageError(true)}
+            />
           </div>
+        )}
 
+        {imageError && (
+          <p className="text-sm text-red-600">
+            Unable to preview this image. Please check the URL.
+          </p>
+        )}
+      </section>
 
-          {/* PUBLISH SETTINGS */}
-          <div
-            className="
-              rounded-xl
-              border
-              border-gray-200
-              bg-white
-              p-5
-              shadow-sm
-            "
+      {/* Publication Settings */}
+      <section className="space-y-5 border-t border-gray-100 pt-8">
+        <h2 className="text-lg font-semibold text-gray-900">
+          Publication Settings
+        </h2>
+
+        <div>
+          <label
+            htmlFor="news-status"
+            className={labelClass}
           >
-
-            <h3 className="text-base font-semibold text-gray-900">
-              Publishing
-            </h3>
-
-
-            {/* AUTHOR */}
-            <div className="mt-5">
-
-              <label
-                htmlFor="author"
-                className="
-                  block
-                  text-xs
-                  font-medium
-                  text-gray-600
-                "
-              >
-                Author
-              </label>
-
-              <input
-                id="author"
-                value={author}
-                onChange={(event) =>
-                  setAuthor(event.target.value)
-                }
-                className="
-                  mt-2
-                  w-full
-                  rounded-lg
-                  border
-                  border-gray-200
-                  px-3
-                  py-2.5
-                  text-sm
-                  text-gray-700
-                  outline-none
-                  focus:border-green-600
-                "
-              />
-
-            </div>
-
-
-            {/* READ TIME */}
-            <div className="mt-5">
-
-              <label
-                htmlFor="read-time"
-                className="
-                  block
-                  text-xs
-                  font-medium
-                  text-gray-600
-                "
-              >
-                Reading Time
-              </label>
-
-              <div className="relative mt-2">
-
-                <input
-                  id="read-time"
-                  type="number"
-                  min={1}
-                  max={60}
-                  value={readTime}
-                  onChange={(event) =>
-                    setReadTime(
-                      Number(event.target.value)
-                    )
-                  }
-                  className="
-                    w-full
-                    rounded-lg
-                    border
-                    border-gray-200
-                    px-3
-                    py-2.5
-                    pr-14
-                    text-sm
-                    text-gray-700
-                    outline-none
-                    focus:border-green-600
-                  "
-                />
-
-                <span
-                  className="
-                    absolute
-                    right-3
-                    top-1/2
-                    -translate-y-1/2
-                    text-xs
-                    text-gray-400
-                  "
-                >
-                  min
-                </span>
-
-              </div>
-
-            </div>
-
-
-            {/* FEATURED */}
-            <div
-              className="
-                mt-5
-                border-t
-                border-gray-100
-                pt-5
-              "
-            >
-
-              <label
-                className="
-                  flex
-                  cursor-pointer
-                  items-start
-                  justify-between
-                  gap-4
-                "
-              >
-
-                <div>
-                  <p
-                    className="
-                      text-sm
-                      font-medium
-                      text-gray-700
-                    "
-                  >
-                    Featured Article
-                  </p>
-
-                  <p
-                    className="
-                      mt-1
-                      text-xs
-                      leading-5
-                      text-gray-400
-                    "
-                  >
-                    Display this story prominently on
-                    the News page.
-                  </p>
-                </div>
-
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setFeatured(!featured)
-                  }
-                  className={`
-                    relative
-                    mt-0.5
-                    h-6
-                    w-11
-                    shrink-0
-                    rounded-full
-                    transition-colors
-                    duration-300
-
-                    ${
-                      featured
-                        ? "bg-[#063d2b]"
-                        : "bg-gray-200"
-                    }
-                  `}
-                  aria-pressed={featured}
-                >
-
-                  <span
-                    className={`
-                      absolute
-                      top-1
-                      h-4
-                      w-4
-                      rounded-full
-                      bg-white
-                      shadow-sm
-                      transition-all
-                      duration-300
-
-                      ${
-                        featured
-                          ? "left-6"
-                          : "left-1"
-                      }
-                    `}
-                  />
-
-                </button>
-
-              </label>
-
-            </div>
-
-          </div>
-
+            Publication Status
+          </label>
+          <select
+            id="news-status"
+            value={formData.status}
+            onChange={(event) =>
+              updateField(
+                "status",
+                event.target.value as NewsFormData["status"]
+              )
+            }
+            className={inputClass}
+          >
+            <option value="draft">Draft</option>
+            <option value="published">Published</option>
+          </select>
         </div>
 
-      </div>
+        <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-100 bg-[#f7faf8] p-4">
+          <input
+            type="checkbox"
+            checked={formData.is_featured}
+            onChange={(event) =>
+              updateField(
+                "is_featured",
+                event.target.checked
+              )
+            }
+            className="h-4 w-4 accent-green-600"
+          />
 
+          <span>
+            <span className="block text-sm font-medium text-gray-900">
+              Featured Article
+            </span>
+            <span className="mt-1 block text-xs text-gray-500">
+              Highlight this article in the featured news section.
+            </span>
+          </span>
+        </label>
+      </section>
 
-      {/* =====================================================
-          ACTION BAR
-      ====================================================== */}
-
-      <div
-        className="
-          sticky
-          bottom-4
-          z-20
-          flex
-          flex-col
-          gap-3
-          rounded-xl
-          border
-          border-gray-200
-          bg-white/95
-          px-5
-          py-4
-          shadow-[0_15px_45px_rgba(0,0,0,0.10)]
-          backdrop-blur
-          sm:flex-row
-          sm:items-center
-          sm:justify-between
-        "
-      >
-
+      {/* Form Actions */}
+      <div className="flex flex-wrap items-center justify-end gap-3 border-t border-gray-100 pt-6">
         <Link
           href="/admin/news"
-          className="
-            text-center
-            text-sm
-            font-medium
-            text-gray-500
-            transition
-            hover:text-gray-900
-          "
+          className="rounded-lg border border-gray-200 px-6 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
         >
           Cancel
         </Link>
 
-
-        <div
-          className="
-            flex
-            flex-col
-            gap-3
-            sm:flex-row
-          "
+        <button
+          type="submit"
+          disabled={loading}
+          className="rounded-lg bg-[#063d2b] px-7 py-3 text-sm font-semibold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
-
-          {/* SAVE DRAFT */}
-
-            <button
-            type="button"
-            disabled={isSubmitting}
-            onClick={() => submitArticle("draft")}
-            className="
-                rounded-lg
-                border
-                border-gray-200
-                bg-white
-                px-5
-                py-3
-                text-sm
-                font-semibold
-                text-gray-700
-                transition
-                hover:bg-gray-50
-                disabled:cursor-not-allowed
-                disabled:opacity-60
-            "
-            >
-            {isSubmitting ? "Saving..." : "Save Draft"}
-            </button>
-
-
-          {/* PUBLISH */}
-            <button
-            type="button"
-            disabled={isSubmitting}
-            onClick={() => submitArticle("published")}
-            className="
-                inline-flex
-                items-center
-                justify-center
-                rounded-lg
-                bg-[#063d2b]
-                px-6
-                py-3
-                text-sm
-                font-semibold
-                text-white
-                transition
-                hover:bg-[#0a5039]
-                disabled:cursor-not-allowed
-                disabled:opacity-60
-            "
-            >
-            {isSubmitting ? "Publishing..." : "Publish Article"}
-            </button>
-
-        </div>
-
+          {loading
+            ? "Saving..."
+            : isEditing
+              ? "Update Article"
+              : "Save Article"}
+        </button>
       </div>
-
     </form>
   );
 }

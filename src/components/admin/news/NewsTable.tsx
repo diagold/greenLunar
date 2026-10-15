@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 
+import DeleteNewsButton from "@/components/admin/DeleteNewsButton";
+
 
 
 interface NewsArticle {
@@ -638,6 +640,11 @@ export default function NewsTable({
                           />
                         </svg>
                       </Link>
+                      
+                      <DeleteNewsButton
+                        articleId={article.id}
+                        articleTitle={article.title}
+                      />
 
                     </div>
 
