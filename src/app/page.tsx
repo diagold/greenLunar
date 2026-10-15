@@ -402,7 +402,7 @@ const {
   data: memberCompanySettings,
   error: memberCompanySettingsError,
 } = await supabase
-  .from("homepage_member_company")
+  .from("MemberCompanySettings")
   .select(`
     id,
     eyebrow,
@@ -452,7 +452,7 @@ if (memberCompanySettings) {
     error,
   } = await supabase
     .from(
-      "homepage_member_company_items"
+      "MemberCompanyItem"
     )
     .select(`
       id,
