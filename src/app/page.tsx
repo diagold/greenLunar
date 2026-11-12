@@ -593,7 +593,7 @@ if (memberCompanySettings) {
         GROUP CHAIRMAN
     ================================================ */}
 
-      {leadership && (
+      {/* {leadership && (
         <GroupChairman
           imageUrl={leadership.chairman_image_url}
           imageAlt={leadership.chairman_image_alt}
@@ -602,7 +602,7 @@ if (memberCompanySettings) {
           name={leadership.chairman_name}
           description={leadership.chairman_description}
         />
-      )}
+      )} */}
 
       <HomeFeaturedNews />
 
